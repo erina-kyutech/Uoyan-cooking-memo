@@ -158,8 +158,7 @@ const DATA=[
   {n:"アサリバター",t:[],s:["酒150ml、水150ml","味の光 カップ1","S"]}
  ]},
  {cat:"小鉢・珍味",items:[
-  {n:"珍味（トッピング早見）",t:[],pair:[["まぐろ酒盗","ネギ"],["イカ塩辛","ネギ"],["梅くらげ","ごま"],["梅水晶","ごま"]]},
-  {n:"チャンジャ",t:[],s:["大葉の上にチャンジャをのせる","ごまをふる"]},
+  {n:"珍味（酒盗・塩辛・梅くらげ・梅水晶・チャンジャ）",t:[],s:["大葉を敷く","大葉の上にそれぞれの具をのせる","下の表のトッピングをのせる"],pair:[["まぐろ酒盗","ネギ"],["イカ塩辛","ネギ"],["梅くらげ","ごま"],["梅水晶","ごま"],["チャンジャ","ごま"]]},
   {n:"まぐろ酒盗とクリームチーズ",t:[],s:["酒盗は単品と同じ","クラッカーを添える"]},
   {n:"チャンジャクリームチーズ",t:[],s:["チャンジャは単品と同じ","韓国海苔を添える"]},
   {n:"ネギトロのみ",t:[],s:["ネギトロをのせる"],m:"のり、ネギ、わさび"},
@@ -194,8 +193,8 @@ const tabs=document.getElementById("tabs"),main=document.getElementById("main"),
 function card(it){
   const chips=it.t.map(([k,v])=>`<span class="chip c-${k}">${LBL[k]?LBL[k]+" ":""}${esc(v)}</span>`).join("");
   let body="";
-  if(it.pair) body=`<div class="pair">${it.pair.map(([a,b])=>`<div><b>${esc(a)}</b><span>→ ${esc(b)}</span></div>`).join("")}</div>`;
   if(it.s) body+=`<ol>${it.s.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`;
+  if(it.pair) body+=`<div class="pair"${it.s?' style="margin-top:10px"':''}>${it.pair.map(([a,b])=>`<div><b>${esc(a)}</b><span>→ ${esc(b)}</span></div>`).join("")}</div>`;
   let dl="";
   if(it.m) dl+=`<dt>盛り付け</dt><dd>${esc(it.m)}</dd>`;
   if(it.x) dl+=`<dt>メモ</dt><dd>${esc(it.x)}</dd>`;
