@@ -6,22 +6,24 @@
 <meta name="robots" content="noindex">
 <title>うおやんクッキングメモ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Yusei+Magic&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/menu.css">
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>うおやん<span>クッキングメモ</span></h1>
-    <p class="sub">作り方・お店のこと・お知らせ。タップで開く。</p>
+    <p class="sub">作り方・お店のこと・メニュー表・お知らせ</p>
     <div id="status" class="status" hidden></div>
     <div class="sections" role="group" aria-label="表示するもの">
       <button type="button" data-section="cook" aria-pressed="true">調理</button>
       <button type="button" data-section="shop" aria-pressed="false">お店のこと</button>
+      <button type="button" data-section="menu" aria-pressed="false">メニュー表</button>
     </div>
   </header>
   <section id="notices" class="notices" aria-label="お知らせ"></section>
-  <div class="bar">
+  <div class="bar" id="bar">
     <input id="q" type="search" placeholder="検索（例：ピザ、手羽、掃除）" autocomplete="off">
     <div class="tabs" id="tabs"></div>
   </div>
@@ -37,6 +39,7 @@
 
 <div class="dock"><div class="dock-in" id="dock"></div></div>
 <noscript><p style="padding:16px">このページを見るには JavaScript が必要です。</p></noscript>
+<script src="/menu-render.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

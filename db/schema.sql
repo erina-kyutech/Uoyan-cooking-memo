@@ -68,3 +68,15 @@ create table if not exists notices (
   deleted_at  timestamptz,
   deleted_by  text
 );
+
+-- ---- 追加: メニュー表（値段） ----
+-- pricelists : メニュー表1枚分（例: id='drink'）を data(JSON) にまとめて持つ。
+--              data = { title, caution, blocks: [{ key, title, price?, note?, groups: [{ label, price?, note?, plus?, items: [{ name, price? }] }] }] }
+--              price は税抜き。「各○円」はブロックかグループに、1品ずつの値段は item に入る。税込は画面で計算する
+create table if not exists pricelists (
+  id          text primary key,
+  data        jsonb not null,
+  version     integer not null default 1,
+  updated_at  timestamptz not null default now(),
+  updated_by  text not null default ''
+);

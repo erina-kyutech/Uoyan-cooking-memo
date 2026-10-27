@@ -18,6 +18,7 @@ const ERRORS = {
   too_long_tags: '時間タグの1行が長すぎるよ（40文字まで）', too_many_tags: '時間タグは10行までにしてね',
   too_long_plating: '盛り付けが長すぎるよ（300文字まで）', too_long_memo: 'メモが長すぎるよ（300文字まで）',
   too_long_note_steps: '共通メモの1行が長すぎるよ', too_many_note_steps: '共通メモは30行までにしてね', too_long_note_title: '見出しが長すぎるよ（40文字まで）',
+  required_item_name: '品名が空の行があるよ。入れるか「×」で消してね', invalid_price: '値段は数字だけで入れてね（例：450）',
   required_title: 'タイトルを入れてね', too_long_title: 'タイトルが長すぎるよ（60文字まで）', too_long_body: '本文が長すぎるよ（1000文字まで）',
   not_found: '見つからなかった。もう一度読み込んでね',
   network: '通信できなかった。電波を確認して、もう一度押してね',
@@ -37,14 +38,14 @@ async function api(path, body) {
 }
 
 // ---------- 状態 ----------
-let S = { categories: [], menus: [], trash: [], notices: [], noticeTrash: [] };
-let section = store.get('uoyan_section') === 'shop' ? 'shop' : 'cook'; // 上の大きいタブ: 調理 / お店のこと
+let S = { categories: [], menus: [], trash: [], notices: [], noticeTrash: [], pricelists: [] };
+let section = ['shop', 'menu'].includes(store.get('uoyan_section')) ? store.get('uoyan_section') : 'cook'; // 上の大きいタブ: 調理 / お店のこと / メニュー表
 let cat = 'すべて';
 let editing = false;
 let editor = store.get('uoyan_editor') || '';
 const openIds = new Set(); // 開いているカード（描き直しても開いたままにする）
 
-try { const c = JSON.parse(store.get('uoyan_cache') || 'null'); if (c && Array.isArray(c.menus)) S = { notices: [], noticeTrash: [], ...c }; } catch (_) { /* キャッシュなし */ }
+try { const c = JSON.parse(store.get('uoyan_cache') || 'null'); if (c && Array.isArray(c.menus)) S = { notices: [], noticeTrash: [], pricelists: [], ...c }; } catch (_) { /* キャッシュなし */ }
 
 // 調理とお店のことで、言葉を変える
 const LABELS = {
@@ -138,6 +139,8 @@ function render() {
   $('#editHint').hidden = !editing;
   $('#legend').hidden = section !== 'cook';
   for (const b of document.querySelectorAll('[data-section]')) b.setAttribute('aria-pressed', b.dataset.section === section);
+  $('#bar').hidden = section === 'menu';
+  if (section === 'menu') { $('#legend').hidden = true; renderNotices(); main.innerHTML = renderMenuTab(); fitPreview(); renderTrash(); renderDock(); return; }
   const L = LABELS[section];
   renderNotices();
   const cats = categoriesInOrder().filter((c) => editing || S.menus.some((m) => m.category === c.name));
@@ -185,6 +188,117 @@ function renderDock() {
        <button class="btn btn-primary" type="button" data-act="edit-off">✓ 終わる</button>`
     : `<button class="btn" type="button" data-act="feed">変更履歴</button>
        <button class="btn wide" type="button" data-act="edit-on">✏ 編集する</button>`;
+}
+
+// ---------- メニュー表 ----------
+const drink = () => (S.pricelists || []).find((p) => p.id === 'drink');
+
+function renderMenuTab() {
+  const pl = drink();
+  if (!pl) return '<p class="loading">読み込み中…</p>';
+  const by = pl.updated_by && pl.updated_by !== '初期データ' ? `（${esc(pl.updated_by)}さん）` : '';
+  return `<div class="mt">
+    <div class="mt-head"><h2>ドリンクメニュー</h2><span>最終更新 ${fmtTime(pl.updated_at)}${by}</span></div>
+    <a class="mt-preview" href="/menu.html" aria-label="ドリンクメニュー表を大きく開く">${DrinkMenu.render(pl.data)}</a>
+    <div class="mt-actions">
+      <a class="btn btn-primary" href="/menu.html">大きく開く・印刷・PDF</a>
+      <button class="btn btn-accent" type="button" data-act="price-edit">値段・品名を変える</button>
+      <button class="btn" type="button" data-act="price-history">履歴</button>
+    </div>
+    <p class="notice-none">値段は税抜きで入れてね。税込（10%）は自動で計算されるよ。</p>
+  </div>`;
+}
+
+// 1000px で組んだメニュー表を、枠の幅に合わせて縮める
+function fitPreview() {
+  const box = main.querySelector('.mt-preview'); if (!box) return;
+  const dm = box.querySelector('.dm');
+  const sc = box.clientWidth / 1000;
+  dm.style.transform = 'scale(' + sc + ')';
+  box.style.height = Math.round(1414 * sc) + 'px';
+}
+addEventListener('resize', fitPreview);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPreview);
+
+// 値段・品名の編集。data をコピーして、入力のたびに書き換える。保存は1枚まるごと
+function priceForm(pl) {
+  let version = pl.version;
+  const d = JSON.parse(JSON.stringify(pl.data));
+  const orig = new Map(DrinkMenu.flatten(pl.data).map((x) => [x.key, x.price]));
+  const s = openSheet(`<h3>ドリンクメニューの値段・品名</h3>
+    <p style="margin:0;font-size:.85rem;color:var(--muted)">値段は税抜きで入れてね（税込は自動）。変えたところは色がつくよ。</p>
+    <div class="warnbox" id="peConflict" hidden></div>
+    <div class="pe" id="pe"></div>
+    <p class="err" id="peErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="peCancel">やめる</button><button class="btn btn-accent" type="button" id="peSave">保存する</button></div>`);
+  const box = $('#pe', s);
+  const priceBox = (path, v, key) => `<span class="pe-price"><input inputmode="numeric" data-path="${path}" data-key="${esc(key)}" value="${v ?? ''}" aria-label="値段"></span>`;
+  const taxText = (v) => (/^\d+$/.test(String(v)) ? `税込${DrinkMenu.tax(Number(v))}円` : '');
+  const itemsHavePrice = (b, g) => g.items.some((i) => i.price != null && i.price !== '') || (g.price == null && b.price == null);
+  function draw() {
+    box.innerHTML = d.blocks.map((b, bi) => {
+      const bl = b.title;
+      return `<div class="pe-block"><h4><span>${esc(b.title)}</span>${b.price != null ? `<span class="pe-each">各${priceBox(`${bi}.price`, b.price, bl + '（各）')}<span class="pe-tax" data-tax="${bi}.price">${taxText(b.price)}</span></span>` : ''}</h4>
+        ${b.groups.map((g, gi) => {
+          const gl = g.label ? bl + '／' + g.label : bl;
+          const hp = itemsHavePrice(b, g);
+          return `<div class="pe-group">
+            ${g.label || g.price != null ? `<div class="pe-glabel"><span>${esc(g.label)}</span>${g.price != null ? `<span class="pe-each">各${priceBox(`${bi}.${gi}.price`, g.price, gl + '（各）')}<span class="pe-tax" data-tax="${bi}.${gi}.price">${taxText(g.price)}</span></span>` : ''}</div>` : ''}
+            ${g.items.map((it, ii) => `<div class="pe-row${hp ? '' : ' noprice'}">
+              <input data-path="${bi}.${gi}.${ii}.name" value="${esc(it.name)}" aria-label="品名" maxlength="40">
+              ${hp ? priceBox(`${bi}.${gi}.${ii}.price`, it.price, gl + '／' + it.name) : ''}
+              <button class="pe-x" type="button" data-del="${bi}.${gi}.${ii}" aria-label="この行を消す">×</button></div>`).join('')}
+            <button class="pe-add" type="button" data-add="${bi}.${gi}">＋ 品を追加</button></div>`;
+        }).join('')}</div>`;
+    }).join('');
+    for (const inp of box.querySelectorAll('input[data-key]')) mark(inp);
+  }
+  function mark(inp) {
+    const k = inp.dataset.key;
+    const before = orig.has(k) ? orig.get(k) : undefined;
+    inp.classList.toggle('pe-changed', String(before ?? '') !== inp.value.trim());
+  }
+  function set(path, val) {
+    const p = path.split('.'); const f = p.pop();
+    const b = d.blocks[p[0]];
+    const obj = p.length === 1 ? b : p.length === 2 ? b.groups[p[1]] : b.groups[p[1]].items[p[2]];
+    obj[f] = val;
+  }
+  box.addEventListener('input', (e) => {
+    const inp = e.target.closest('input[data-path]'); if (!inp) return;
+    set(inp.dataset.path, inp.value);
+    if (inp.dataset.key) {
+      mark(inp);
+      const t = box.querySelector(`[data-tax="${inp.dataset.path}"]`); if (t) t.textContent = taxText(inp.value.trim());
+    }
+  });
+  box.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]'), add = e.target.closest('[data-add]');
+    if (del) { const [bi, gi, ii] = del.dataset.del.split('.').map(Number); d.blocks[bi].groups[gi].items.splice(ii, 1); draw(); }
+    if (add) {
+      const [bi, gi] = add.dataset.add.split('.').map(Number);
+      const b = d.blocks[bi], g = b.groups[gi];
+      g.items.push(itemsHavePrice(b, g) ? { name: '', price: '' } : { name: '' });
+      draw();
+      const rows = box.querySelectorAll(`[data-path^="${bi}.${gi}."][data-path$=".name"]`); if (rows.length) rows[rows.length - 1].focus();
+    }
+  });
+  draw();
+  $('#peCancel', s).onclick = closeSheet;
+  $('#peSave', s).onclick = (e) => busy(e.currentTarget, async () => {
+    const err = $('#peErr', s); err.hidden = true;
+    try {
+      await api('pricelist', { action: 'update', id: 'drink', version, data: d, editor });
+      closeSheet(); toast('メニュー表を更新したよ'); await load();
+    } catch (er) {
+      if (er.code === 'conflict') {
+        const cur = er.body.pricelist; version = cur.version;
+        const box2 = $('#peConflict', s);
+        box2.innerHTML = `<b>${esc(cur.updated_by)}さんが先に変更したよ（${fmtTime(cur.updated_at)}）</b><span>「変更履歴」で中身を確認して、自分の内容で上書きしていいなら、もう一度「保存する」を押してね。</span>`;
+        box2.hidden = false; box2.scrollIntoView({ block: 'nearest' }); load();
+      } else { err.textContent = errText(er); err.hidden = false; }
+    }
+  });
 }
 
 // ---------- お知らせ ----------
@@ -405,7 +519,22 @@ const FIELD_LABEL = { title: 'タイトル', body: '内容', name: 'メニュー
 const FIELDS = { menu: ['name', 'category', 'tags', 'steps', 'plating', 'memo'], category: ['note_title', 'note_steps'], notice: ['title', 'body'] };
 
 // 1つ前の状態(prev)と比べて、何が変わったかを「－ 消した行」「＋ 足した行」で見せる
+function priceDiffHtml(h) {
+  if (h.action === 'create' || !h.prev) return '';
+  const A = new Map(DrinkMenu.flatten(h.prev.data).map((x) => [x.key, x.price]));
+  const B = new Map(DrinkMenu.flatten(h.snapshot.data).map((x) => [x.key, x.price]));
+  const yen = (v) => (v == null ? '' : ' ' + v + '円');
+  const out = [];
+  for (const [k, v] of B) {
+    if (!A.has(k)) out.push(`<div class="diff-line diff-add">${esc(k + yen(v))}</div>`);
+    else if (A.get(k) !== v) out.push(`<div class="diff-line diff-chg">${esc(k)}：${A.get(k) ?? '（なし）'}円 → <b>${v ?? '（なし）'}円</b></div>`);
+  }
+  for (const [k, v] of A) if (!B.has(k)) out.push(`<div class="diff-line diff-del">${esc(k + yen(v))}</div>`);
+  return out.length ? `<div class="diff">${out.join('')}</div>` : '<div class="diff" style="color:var(--muted)">中身の変更はなし</div>';
+}
+
 function diffHtml(h) {
+  if (h.target === 'pricelist') return priceDiffHtml(h);
   if (h.action === 'delete' || h.action === 'restore') return '';
   const prev = h.action === 'create' ? {} : h.prev;
   if (!prev) return '';
@@ -432,6 +561,7 @@ function diffHtml(h) {
 
 // ある時点の中身（全部）
 function snapHtml(kind, sn) {
+  if (kind === 'pricelist') return DrinkMenu.flatten(sn.data).filter((x) => x.price != null).map((x) => `<div>${esc(x.key)}：${x.price}円</div>`).join('');
   if (kind === 'notice') return `<b>${esc(sn.title)}</b>${sn.body ? `<div style="white-space:pre-wrap">${esc(sn.body)}</div>` : ''}`;
   const steps = (kind === 'menu' ? sn.steps : sn.note_steps) || [];
   return kind === 'menu'
@@ -457,6 +587,7 @@ async function showFeed() {
     const isMenu = h.target === 'menu';
     const title = isMenu ? `「${esc(sn.name)}」${ACTION_VERB[h.action] || ''}<small>${esc(sn.category)}</small>`
       : h.target === 'notice' ? `お知らせ「${esc(sn.title)}」${ACTION_VERB[h.action] || ''}`
+      : h.target === 'pricelist' ? `${esc((sn.data && sn.data.title) || 'メニュー表')}${h.action === 'update' ? 'の値段・品名を変更' : ACTION_VERB[h.action] || ''}`
       : `「${esc(sn.name)}」の共通メモ${ACTION_VERB[h.action] || ''}`;
     const alive = isMenu ? S.menus.some((m) => m.id === h.target_id)
       : h.target === 'notice' ? S.notices.some((n) => n.id === h.target_id) : true;
@@ -464,7 +595,7 @@ async function showFeed() {
       <div class="hist-top"><b>${esc(h.editor)}さん</b><span>${fmtTime(h.created_at)}</span></div>
       <div class="feed-title">${title}</div>
       ${diffHtml(h)}
-      ${alive ? `<button class="linkbtn" type="button" data-jump="${esc(h.target)}" data-id="${esc(h.target_id)}">${isMenu ? 'これを見る' : h.target === 'notice' ? 'このお知らせを見る' : 'このカテゴリを見る'}</button>` : ''}
+      ${alive ? `<button class="linkbtn" type="button" data-jump="${esc(h.target)}" data-id="${esc(h.target_id)}">${isMenu ? 'これを見る' : h.target === 'notice' ? 'このお知らせを見る' : h.target === 'pricelist' ? 'メニュー表を見る' : 'このカテゴリを見る'}</button>` : ''}
     </div>`;
   }).join('');
   $('#feed', s).addEventListener('click', (e) => {
@@ -475,6 +606,7 @@ async function showFeed() {
 
 function jumpTo(kind, id) {
   q.value = '';
+  if (kind === 'pricelist') { section = 'menu'; render(); window.scrollTo(0, 0); return; }
   if (kind === 'notice') {
     const n = S.notices.find((x) => x.id === id); if (!n) return;
     if (!isActive(n)) { render(); pastNotices(); return; }
@@ -562,6 +694,8 @@ document.addEventListener('click', (e) => {
   if (act === 'feed') { showFeed(); return; }
   if (act === 'notice-add') { withName(() => noticeForm()); return; }
   if (act === 'notice-past') { pastNotices(); return; }
+  if (act === 'price-edit') { const pl = drink(); if (pl) withName(() => priceForm(pl)); return; }
+  if (act === 'price-history') { showHistory('pricelist', 'drink', 'ドリンクメニュー表'); return; }
   if (act.startsWith('notice-')) {
     const n = S.notices.find((x) => x.id === b.dataset.id) || (S.noticeTrash || []).find((x) => x.id === b.dataset.id); if (!n) return;
     if (act === 'notice-edit') noticeForm(n);

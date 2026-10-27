@@ -1,0 +1,139 @@
+/* ドリンクメニュー表。1000×1414px（A4縦）で組んで、画面では縮めて、印刷では A4 にぴったり合わせる */
+.dm{
+  --dm-paper1:#f8cc45; --dm-paper2:#f2a72b; --dm-ink:#1f1408; --dm-red:#d4481c; --dm-cream:#fbf1d4; --dm-line:#2a1a0a;
+  --dm-beer1:#2f2b27; --dm-beer2:#121110; --dm-beer-ink:#f5efe2;
+  --dm-hand:"Yusei Magic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+  --dm-bold:"Dela Gothic One","Hiragino Sans",sans-serif;
+}
+.dm{width:1000px;height:1414px;box-sizing:border-box;padding:22px 24px;position:relative;overflow:hidden;
+  font-family:var(--dm-hand);color:var(--dm-ink);font-size:16px;line-height:1.2;text-align:left;
+  background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.18),transparent 40%),
+    radial-gradient(circle at 80% 75%,rgba(190,80,0,.12),transparent 45%),
+    linear-gradient(170deg,var(--dm-paper1),var(--dm-paper2));
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.dm *{box-sizing:border-box}
+.dm ul{list-style:none;margin:0;padding:0}
+.dm p{margin:0}
+.ill{display:block;flex:none}
+
+/* 値段 */
+.pr{display:flex;flex-direction:column;align-items:center;line-height:1;white-space:nowrap}
+.pn{font-family:var(--dm-hand);-webkit-text-stroke:.7px currentColor;letter-spacing:.01em}
+.pn small{font-size:.55em;margin-left:1px}
+.pn i{font-style:normal;font-size:.72em;margin-right:4px}
+.tx{font-size:13px;margin-top:4px;-webkit-text-stroke:.2px currentColor}
+.pr-red{color:var(--dm-red)}
+.pr-white{color:var(--dm-beer-ink)}
+.pr-m .pn{font-size:30px}
+.pr-l .pn{font-size:32px}
+.pr-xl .pn{font-size:54px}
+.pr-xl .tx{font-size:20px}
+
+/* 提灯 */
+.lantern{width:74px;position:relative;flex:none;display:flex;align-items:center;justify-content:center;margin:14px auto;
+  border-radius:46% / 15%;
+  background:
+    repeating-linear-gradient(180deg,rgba(90,25,0,.12) 0 2px,transparent 2px 15px),
+    radial-gradient(ellipse at 38% 42%,#ffd06a 0%,#f39a32 38%,#d0561d 78%,#8f2e10 100%);
+  box-shadow:inset -6px 0 10px rgba(80,20,0,.35),0 2px 3px rgba(0,0,0,.18)}
+.lantern::before,.lantern::after{content:"";position:absolute;left:50%;transform:translateX(-50%);width:44px;height:15px;border-radius:3px;
+  background:linear-gradient(180deg,#5a3618,#2a170a);box-shadow:0 0 0 2px #c79a3a inset}
+.lantern::before{top:-11px}
+.lantern::after{bottom:-11px}
+.lantern span{writing-mode:vertical-rl;font-family:var(--dm-bold);font-size:var(--fs,40px);line-height:1;color:#1a0d05;letter-spacing:.02em}
+
+/* 段組み */
+.top{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;height:720px}
+.top-r{display:grid;grid-template-rows:350px minmax(0,1fr);gap:8px;min-width:0}
+.line{height:3px;background:var(--dm-line);margin:8px 0}
+.br-label{display:block;font-weight:400;font-size:20px;white-space:nowrap}
+
+/* サワー */
+.sour{position:relative}
+.sour .lantern{position:absolute;right:4px;top:0;margin:12px 0}
+.sour-rec{padding:6px 0 0 20px;width:270px;position:relative}
+.rec-label{color:var(--dm-red);font-size:24px;font-weight:400}
+.ume-dots{position:absolute;left:140px;top:6px;display:flex;gap:2px}
+.ume-dots i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd36b,#e98a1f 60%,#b8550f)}
+.ume-dots i:last-child{background:radial-gradient(circle at 35% 35%,#ff8a5a,#d6421c 60%,#8f230b)}
+.dots{margin-top:6px}
+.dots li{font-size:23px;line-height:1.95;white-space:nowrap}
+.dots li::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8603c;margin:0 10px 4px 0}
+.rule{width:250px;border:0;border-top:2.5px solid var(--dm-line);margin:16px 0 18px 14px}
+.dm .plain{padding-left:64px}
+.plain li{font-size:25px;line-height:1.95;white-space:nowrap}
+.plain li::before{content:"・";margin-right:6px}
+.caution{position:absolute;left:0;top:296px;height:400px;writing-mode:vertical-rl;font-size:12.5px;line-height:1.35}
+.pill{position:absolute;right:2px;top:262px;width:78px;height:400px;border-radius:14px;background:#e8603c;color:#fff;
+  writing-mode:vertical-rl;padding:18px 12px;font-size:22px;line-height:1.35;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.pill-tx{font-size:14px}
+.sour-price{position:absolute;left:30px;bottom:40px;width:260px;display:flex;justify-content:center}
+
+/* ハイボール */
+.hb{background:var(--dm-cream);border:3px solid var(--dm-line);outline:2px solid var(--dm-line);outline-offset:-9px;padding:16px 10px 12px 16px;
+  display:grid;grid-template-columns:minmax(0,1fr) 152px 76px;gap:6px;min-height:0;min-width:0;overflow:hidden}
+.hb .lantern{margin:14px 0 14px 6px}
+.hb-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+.pr-s .pn{font-size:25px}
+.pr-s .tx{font-size:11px}
+.hb-col{display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+.vname{writing-mode:vertical-rl;font-size:18.5px;line-height:1.1;flex:1;white-space:nowrap}
+.vname.big{font-size:26px;flex:none}
+.hb-ill{display:flex;align-items:flex-end;gap:2px;margin:6px 0 4px}
+.hb-premium{border:2px solid #e07a2e;border-radius:12px;background:#fff7df;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between}
+.hb-premium .br-label{color:var(--dm-red);font-size:13.5px;text-align:center;letter-spacing:-.02em}
+.hb-p{display:flex;gap:6px;align-items:center}
+.hb-pn{font-size:15.5px;line-height:1.35;margin-bottom:6px}
+
+/* ビール */
+.beer{background:radial-gradient(ellipse at 35% 30%,var(--dm-beer1),var(--dm-beer2));color:var(--dm-beer-ink);border:2px solid #000;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,1.15fr) 80px;padding:12px 6px 8px 10px;min-height:0;min-width:0;overflow:hidden}
+.beer .lantern{margin:14px 0 14px 6px}
+.beer-col{display:flex;flex-direction:column;align-items:center;padding:0 10px;border-right:1.5px solid rgba(245,239,226,.6);min-width:0}
+.beer-col:nth-child(3){border-right:0}
+.beer-list{align-self:stretch;margin-top:10px}
+.beer-list li{font-size:17.5px;line-height:1.75;white-space:nowrap}
+.beer-ill{display:flex;gap:6px;align-items:flex-end;margin-top:auto;margin-bottom:8px}
+.draft-name{font-size:21px;line-height:1.35;text-align:center;width:4.4em}
+.draft-item{display:flex;flex-direction:column;align-items:center;margin-top:8px;font-size:20px;gap:4px}
+.dash{width:80%;border-top:2px dashed rgba(245,239,226,.6);margin-top:10px}
+.draft-ill{margin-top:auto}
+.non-label{font-size:17px;white-space:nowrap}
+.non-note{font-size:12px;margin-top:2px}
+.non-name{font-size:18px;line-height:1.5;margin-top:8px;text-align:center;width:9.2em}
+.non-row{display:flex;align-items:flex-end;gap:6px;margin-top:auto}
+.non-pop{color:#ff6a3a;font-size:17px;line-height:1.3;transform:rotate(-8deg);width:5.2em;text-align:center;margin-bottom:40px;-webkit-text-stroke:.5px #fff}
+.non-ill{display:flex;align-items:flex-end;gap:4px}
+
+/* ワイン・焼酎 */
+.mid{display:grid;grid-template-columns:220px minmax(0,1fr) 80px;gap:8px;height:340px}
+.wine{display:grid;grid-template-columns:52px 86px 1fr;grid-template-rows:1fr auto;position:relative}
+.wine-text{writing-mode:vertical-rl;font-size:19px;line-height:1.45;padding-top:16px}
+.wine .lantern{margin:14px 0}
+.wine-ill{display:flex;align-items:flex-end;gap:2px;align-self:end;margin-bottom:6px}
+.wine-price{grid-column:1 / -1;display:flex;justify-content:center;padding-bottom:8px}
+.sho{display:grid;grid-template-columns:.8fr 1fr 1.2fr 1.4fr 58px;gap:6px;align-items:stretch;min-width:0}
+.sho > .lantern{margin:14px 0 14px 4px}
+.sho-col,.sho-prem{display:flex;flex-direction:column;align-items:center;padding-top:16px;min-width:0}
+.sho-list{margin-top:8px}
+.sho-list li{font-size:22px;line-height:1.36;white-space:nowrap}
+.sho-one .vname{margin-top:10px}
+.sho-ill{display:flex;gap:8px;align-items:flex-end;margin-top:auto;margin-bottom:6px}
+.sho-price{margin-top:auto;padding-bottom:8px}
+.sho-one .sho-price{margin-top:0}
+.sho-prem{border:2px solid #3a2410;border-radius:10px;margin:8px 0 12px;padding:10px 8px 8px}
+.sho-prem .br-label{font-size:18px}
+.sho-note{writing-mode:vertical-rl;font-size:13.5px;line-height:1.45;padding-top:16px;height:320px}
+
+/* ソフトドリンク・梅酒 */
+.bot{display:grid;grid-template-columns:150px 285px 116px 80px minmax(0,1fr) 112px 80px;height:272px;align-items:stretch}
+.bot > .lantern{margin:14px 0}
+.soft-ill{display:flex;flex-wrap:wrap;align-items:flex-end;align-content:center;gap:2px}
+.dm .soft-list{padding:6px 0 0 12px}
+.soft-list li{font-size:19px;line-height:1.27;white-space:nowrap}
+.soft-price,.ume-price{align-self:end;display:flex;justify-content:center;padding-bottom:10px}
+.ume{display:flex;flex-direction:column;padding:10px 0 0 22px}
+.ume-list li{font-size:25px;line-height:1.75;white-space:nowrap}
+.ume-price{margin-top:auto;justify-content:flex-start}
+.ume-ill{display:flex;align-items:flex-end;gap:2px;padding-bottom:10px}

@@ -20,7 +20,7 @@ module.exports = handler('GET', async (req) => {
       where editor <> '初期データ'
       order by id desc limit 100`;
   } else {
-    const target = ['menu', 'category', 'notice'].includes(q.target) ? q.target : null;
+    const target = ['menu', 'category', 'notice', 'pricelist'].includes(q.target) ? q.target : null;
     if (!target) throw new HttpError(400, 'invalid_target');
     const id = text(q.id, 60, { required: true, field: 'id' });
     rows = await db`

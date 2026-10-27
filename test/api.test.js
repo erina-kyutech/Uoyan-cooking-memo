@@ -135,6 +135,29 @@ const test = async (name, fn) => { await fn(); console.log('  ✓ ' + name); n++
     await api('notice', { action: 'delete', editor: 'テスト', id: n.id });
   });
 
+  await test('12. メニュー表: 初期データ・値段の変更・409・不正な値段・履歴から戻す', async () => {
+    let g = await api('pricelist?id=drink'); ok(g, 'pricelist get');
+    const pl = g.body.pricelist;
+    assert.strictEqual(pl.data.blocks.find((b) => b.key === 'sour').price, 400);
+    const d = JSON.parse(JSON.stringify(pl.data));
+    d.blocks.find((b) => b.key === 'sour').price = '420';
+    d.blocks.find((b) => b.key === 'highball').groups[0].items[0].price = '４８０'; // 全角数字もOK
+    d.blocks.find((b) => b.key === 'umeshu').groups[0].items.push({ name: '新しい梅酒' });
+    const u = await api('pricelist', { action: 'update', id: 'drink', version: pl.version, data: d, editor: 'えりな' }); ok(u, 'pricelist update');
+    assert.strictEqual(u.body.pricelist.data.blocks.find((b) => b.key === 'sour').price, 420);
+    assert.strictEqual(u.body.pricelist.data.blocks.find((b) => b.key === 'highball').groups[0].items[0].price, 480);
+    const old = await api('pricelist', { action: 'update', id: 'drink', version: pl.version, data: d, editor: 'Bさん' });
+    assert.strictEqual(old.status, 409);
+    const bad = JSON.parse(JSON.stringify(d)); bad.blocks[0].price = '4百';
+    assert.strictEqual((await api('pricelist', { action: 'update', id: 'drink', version: u.body.pricelist.version, data: bad, editor: 'えりな' })).body.error, 'invalid_price');
+    s = await api('state');
+    assert.strictEqual(s.body.pricelists.find((p) => p.id === 'drink').version, u.body.pricelist.version, 'state にも入る');
+    const h = await api('history?target=pricelist&id=drink');
+    assert.deepStrictEqual(h.body.history.map((x) => x.action), ['update', 'create']);
+    const rv = await api('pricelist', { action: 'revert', editor: 'えりな', history_id: h.body.history[1].id }); ok(rv, 'revert');
+    assert.strictEqual(rv.body.pricelist.data.blocks.find((b) => b.key === 'sour').price, 400);
+  });
+
   // 後片付け: テストで作ったメニューはゴミ箱へ
   await api('menu', { action: 'delete', editor: 'テスト', id: made.id });
   console.log(n + ' tests passed');

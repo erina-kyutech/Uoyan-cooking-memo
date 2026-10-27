@@ -160,12 +160,14 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .diff-add::before{content:"＋ ";font-weight:700}
 .diff-del{background:var(--yaki-bg);color:var(--yaki);text-decoration:line-through}
 .diff-del::before{content:"－ ";font-weight:700}
+.diff-chg{background:var(--warn-bg);color:var(--ink)}
+.diff-chg b{color:var(--accent)}
 .feed-title{font-size:.95rem;overflow-wrap:anywhere}
 .feed-title small{color:var(--muted);font-size:.78rem;margin-left:4px}
 .linkbtn{font:inherit;font-size:.8rem;color:var(--chin);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;justify-self:start}
 
 /* ---- 調理 / お店のこと の大きいタブ ---- */
-.sections{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:14px;background:var(--line);padding:4px;border-radius:12px}
+.sections{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:14px;background:var(--line);padding:4px;border-radius:12px}
 .sections button{font:inherit;font-weight:700;font-size:.95rem;padding:9px 8px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;min-height:42px}
 .sections button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .sections button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -183,3 +185,32 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .notice-meta{font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .notice-none{margin:0;font-size:.85rem;color:var(--muted)}
 .sheet .notice{border:1px solid var(--line)}
+
+/* ---- メニュー表タブ ---- */
+.mt{display:grid;gap:12px;padding-top:18px}
+.mt-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.mt-head h2{margin:0}
+.mt-head span{font-size:.78rem;color:var(--muted)}
+.mt-preview{display:block;overflow:hidden;color:inherit;text-decoration:none;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+.mt-preview .dm{transform-origin:top left}
+.mt-actions{display:flex;flex-wrap:wrap;gap:8px}
+.mt-actions a{text-decoration:none;display:inline-flex;align-items:center}
+.pe{display:grid;gap:14px}
+.pe-block{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:10px}
+.pe-block h4{margin:0;font-size:1rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pe-group{display:grid;gap:6px}
+.pe-glabel{font-size:.8rem;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pe-row{display:grid;grid-template-columns:minmax(0,1fr) 92px 30px;gap:6px;align-items:center}
+.pe-row.noprice{grid-template-columns:minmax(0,1fr) 30px}
+.pe input{font:inherit;font-size:16px;width:100%;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.pe input:focus{outline:none;border-color:var(--chin)}
+.pe-price{position:relative}
+.pe-price input{padding-right:26px;text-align:right;font-variant-numeric:tabular-nums}
+.pe-price::after{content:"円";position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.8rem;color:var(--muted)}
+.pe-each{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700}
+.pe-each .pe-price{width:110px}
+.pe-tax{font-size:.72rem;color:var(--muted);font-weight:500;white-space:nowrap}
+.pe-x{font:inherit;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+.pe-add{font:inherit;font-size:.8rem;color:var(--chin);background:none;border:0;padding:2px 0;text-decoration:underline;cursor:pointer;justify-self:start}
+.pe-changed{border-color:var(--accent)!important;background:var(--accent-soft)!important}
+.mt-preview .dm,.mt-preview .dm *{text-decoration:none}
