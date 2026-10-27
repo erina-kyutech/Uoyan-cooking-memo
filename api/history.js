@@ -5,6 +5,7 @@ const { sql, handler, HttpError, text } = require('../lib/core');
 //   GET /api/history                         … 全部のメニュー・共通メモの最近の変更（初期データは除く）最大100件
 //   GET /api/history?target=menu&id=<id>     … 1つのメニューの履歴 最大50件
 //   GET /api/history?target=category&id=<名> … 1つのカテゴリの共通メモの履歴 最大50件
+//   GET /api/history?target=notice&id=<id>   … 1つのお知らせの履歴 最大50件
 module.exports = handler('GET', async (req) => {
   const q = req.query || {};
   const db = sql();
@@ -19,7 +20,7 @@ module.exports = handler('GET', async (req) => {
       where editor <> '初期データ'
       order by id desc limit 100`;
   } else {
-    const target = q.target === 'category' ? 'category' : q.target === 'menu' ? 'menu' : null;
+    const target = ['menu', 'category', 'notice'].includes(q.target) ? q.target : null;
     if (!target) throw new HttpError(400, 'invalid_target');
     const id = text(q.id, 60, { required: true, field: 'id' });
     rows = await db`

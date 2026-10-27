@@ -102,6 +102,39 @@ const test = async (name, fn) => { await fn(); console.log('  ✓ ' + name); n++
     assert.strictEqual((await api('menu', { action: 'create', editor: 'テスト', menu: { category: 'テスト用', name: 'x', steps: 'a'.repeat(301) } })).body.error, 'too_long_steps');
   });
 
+  await test('10. お店のこと: section=shop で新しいカテゴリを作ると shop になる', async () => {
+    const r = await api('menu', { action: 'create', editor: 'テスト', menu: { category: 'テスト掃除', section: 'shop', name: '閉店後の掃除', steps: '床を拭く' } });
+    ok(r, 'create shop');
+    s = await api('state');
+    assert.strictEqual(s.body.categories.find((c) => c.name === 'テスト掃除').section, 'shop');
+    assert.strictEqual(s.body.categories.find((c) => c.name === 'ピザ').section, 'cook', '既存は調理');
+    await api('menu', { action: 'delete', editor: 'テスト', id: r.body.menu.id });
+  });
+
+  await test('11. お知らせ: 追加・編集(409あり)・ゴミ箱・戻す・履歴から戻す', async () => {
+    const c = await api('notice', { action: 'create', editor: 'えりな', notice: { title: 'ビールサーバー', body: '発泡酒がなくなったので、どっちで出しても生です' } });
+    ok(c, 'notice create');
+    let n = c.body.notice;
+    s = await api('state');
+    assert.ok(s.body.notices.some((x) => x.id === n.id && x.created_by === 'えりな'));
+    const u = await api('notice', { action: 'update', editor: 'Aさん', id: n.id, version: n.version, notice: { title: 'ビールサーバー（重要）', body: n.body } });
+    ok(u, 'notice update');
+    const old = await api('notice', { action: 'update', editor: 'Bさん', id: n.id, version: n.version, notice: { title: 'x', body: '' } });
+    assert.strictEqual(old.status, 409);
+    ok(await api('notice', { action: 'delete', editor: 'テスト', id: n.id }), 'notice delete');
+    s = await api('state');
+    assert.ok(!s.body.notices.some((x) => x.id === n.id) && s.body.noticeTrash.some((x) => x.id === n.id));
+    ok(await api('notice', { action: 'restore', editor: 'テスト', id: n.id }), 'notice restore');
+    const h = await api('history?target=notice&id=' + n.id);
+    assert.deepStrictEqual(h.body.history.map((x) => x.action), ['restore', 'delete', 'update', 'create']);
+    const rv = await api('notice', { action: 'revert', editor: 'テスト', history_id: h.body.history[3].id });
+    assert.strictEqual(rv.body.notice.title, 'ビールサーバー');
+    const feed = await api('history');
+    assert.ok(feed.body.history.some((x) => x.target === 'notice'), '全体の変更履歴にも出る');
+    assert.strictEqual((await api('notice', { action: 'create', editor: 'テスト', notice: { title: '' } })).body.error, 'required_title');
+    await api('notice', { action: 'delete', editor: 'テスト', id: n.id });
+  });
+
   // 後片付け: テストで作ったメニューはゴミ箱へ
   await api('menu', { action: 'delete', editor: 'テスト', id: made.id });
   console.log(n + ' tests passed');

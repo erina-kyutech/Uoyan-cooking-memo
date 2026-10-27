@@ -13,11 +13,16 @@
 <div class="wrap">
   <header>
     <h1>うおやん<span>クッキングメモ</span></h1>
-    <p class="sub">メニューごとの作り方・時間・盛り付け。タップで開く。</p>
+    <p class="sub">作り方・お店のこと・お知らせ。タップで開く。</p>
     <div id="status" class="status" hidden></div>
+    <div class="sections" role="group" aria-label="表示するもの">
+      <button type="button" data-section="cook" aria-pressed="true">調理</button>
+      <button type="button" data-section="shop" aria-pressed="false">お店のこと</button>
+    </div>
   </header>
+  <section id="notices" class="notices" aria-label="お知らせ"></section>
   <div class="bar">
-    <input id="q" type="search" placeholder="メニュー名で検索（例：ピザ、手羽）" autocomplete="off">
+    <input id="q" type="search" placeholder="検索（例：ピザ、手羽、掃除）" autocomplete="off">
     <div class="tabs" id="tabs"></div>
   </div>
   <div class="legend" id="legend">

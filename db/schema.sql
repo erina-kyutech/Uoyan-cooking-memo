@@ -49,3 +49,22 @@ create table if not exists meta (
   key   text primary key,
   value text not null default ''
 );
+
+-- ---- 追加: お店のこと・お知らせ（既存のDBにも何度実行しても安全） ----
+-- categories.section : 'cook'=調理 / 'shop'=お店のこと（掃除・ドリンクなど）
+-- notices            : お知らせ。作ってから2週間は一番上に出て、そのあとは「過去のお知らせ」へ
+alter table categories add column if not exists section text not null default 'cook';
+alter table history drop constraint if exists history_target_check;
+
+create table if not exists notices (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null check (char_length(title) between 1 and 60),
+  body        text not null default '',
+  version     integer not null default 1,
+  created_at  timestamptz not null default now(),
+  created_by  text not null,
+  updated_at  timestamptz not null default now(),
+  updated_by  text not null default '',
+  deleted_at  timestamptz,
+  deleted_by  text
+);

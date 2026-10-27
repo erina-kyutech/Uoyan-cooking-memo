@@ -14,7 +14,7 @@ module.exports = handler('POST', async (req, body) => {
 const ACTIONS = {
   async create(body, editor) {
     const m = menuInput(body.menu);
-    await ensureCategory(m.category);
+    await ensureCategory(m.category, m.section);
     const rows = await sql()`
       with ins as (
         insert into menus (category, name, tags, steps, plating, memo, sort, updated_by)
@@ -31,7 +31,7 @@ const ACTIONS = {
   // version が画面で読んだときと同じときだけ保存する。違えば誰かが先に変えたので 409 と最新の中身を返す
   async update(body, editor) {
     const id = uuid(body.id); const version = int(body.version); const m = menuInput(body.menu);
-    await ensureCategory(m.category);
+    await ensureCategory(m.category, m.section);
     const db = sql();
     const rows = await db`
       with up as (

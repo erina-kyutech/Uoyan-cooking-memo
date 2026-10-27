@@ -4,6 +4,8 @@
 
 ## 使い方
 
+- 一番上の大きいタブで「調理」と「お店のこと」（掃除・ドリンクなど）を切り替える
+- **お知らせ**は両方のタブの一番上に出る。書いてから2週間たつと「過去のお知らせ」に移る。この端末でまだ見ていないものには NEW がつく
 - ふだんは閲覧専用。カードをタップで開く。上の検索とタブで探せる
 - 画面下の「✏ 編集する」→ 最初だけ名前を入れる（履歴に残す用）→ 編集モード
   - カードを開くと「編集」「履歴」「ゴミ箱へ」
@@ -27,6 +29,7 @@
 - `api/menu.js`（POST）: `action` = `create` / `update` / `delete`（ゴミ箱へ）/ `restore` / `revert`（履歴から戻す）
 - `api/history.js`（GET）: パラメータなし＝全体の最近の変更100件。`?target=menu&id=…` / `?target=category&id=カテゴリ名` で1つ分
 - `api/category.js`（POST）: 共通メモの `update` / `revert`
+- `api/notice.js`（POST）: お知らせの `create` / `update` / `delete` / `restore` / `revert`
 
 テーブルは `db/schema.sql`。**API が最初に動いたときに自動で作られ、`db/seed.json` の初期メニューが1回だけ入る**（`npm run migrate` は不要）。
 どの変更も「メニューを変える」と「履歴を1行足す」を1つのSQL文で行うので、片方だけ成功することはない。
