@@ -199,6 +199,7 @@ function renderMenuTab() {
   const by = pl.updated_by && pl.updated_by !== '初期データ' ? `（${esc(pl.updated_by)}さん）` : '';
   return `<div class="mt">
     <div class="mt-head"><h2>ドリンクメニュー</h2><span>最終更新 ${fmtTime(pl.updated_at)}${by}</span></div>
+    <div class="mt-design"><span>デザイン：<b>${esc(themeName(pl.data.theme))}</b></span><button class="btn btn-small" type="button" data-act="design">デザインを選ぶ</button></div>
     <a class="mt-preview" href="/menu.html" aria-label="ドリンクメニュー表を大きく開く">${DrinkMenu.render(pl.data)}</a>
     <div class="mt-actions">
       <a class="btn btn-primary" href="/menu.html">大きく開く・印刷・PDF</a>
@@ -207,6 +208,34 @@ function renderMenuTab() {
     </div>
     <p class="notice-none">値段は税抜きで入れてね。税込（10%）は自動で計算されるよ。</p>
   </div>`;
+}
+
+const themeName = (id) => (DrinkMenu.THEMES.find((t) => t.id === (id || 'chochin')) || DrinkMenu.THEMES[0]).name;
+
+// デザインを選ぶ。小さい見本を並べて、押したらそのデザインで保存（値段はそのまま）
+function designPicker(pl) {
+  const cur = pl.data.theme || 'chochin';
+  const s = openSheet(`<h3>デザインを選ぶ</h3>
+    <p style="margin:0;font-size:.85rem;color:var(--muted)">中身（お酒と値段）は同じで、見た目だけ変わるよ。選ぶとみんなのメニュー表がそのデザインになる。</p>
+    <div class="dz">${DrinkMenu.THEMES.map((t) => `<button type="button" data-theme="${t.id}" aria-pressed="${t.id === cur}">
+      <span class="thumb">${DrinkMenu.render(pl.data, t.id)}</span><span><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></span></button>`).join('')}</div>
+    <p class="err" id="dzErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="dzClose">閉じる</button></div>`);
+  const fitThumbs = () => { for (const th of s.querySelectorAll('.thumb')) th.firstElementChild.style.transform = 'scale(' + th.clientWidth / 1000 + ')'; };
+  fitThumbs(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitThumbs);
+  $('#dzClose', s).onclick = closeSheet;
+  s.querySelector('.dz').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]'); if (!b || b.dataset.theme === cur) return;
+    withName(async () => {
+      try {
+        await api('pricelist', { action: 'update', id: 'drink', version: pl.version, data: { ...pl.data, theme: b.dataset.theme }, editor });
+        closeSheet(); toast('「' + themeName(b.dataset.theme) + '」にしたよ'); await load();
+      } catch (er) {
+        const x = $('#dzErr', s); x.textContent = er.code === 'conflict' ? '他の人が先にメニュー表を変更したよ。閉じて、もう一度選んでね' : errText(er); x.hidden = false;
+        if (er.code === 'conflict') load();
+      }
+    });
+  });
 }
 
 // 1000px で組んだメニュー表を、枠の幅に合わせて縮める
@@ -525,6 +554,7 @@ function priceDiffHtml(h) {
   const B = new Map(DrinkMenu.flatten(h.snapshot.data).map((x) => [x.key, x.price]));
   const yen = (v) => (v == null ? '' : ' ' + v + '円');
   const out = [];
+  if ((h.prev.data.theme || 'chochin') !== (h.snapshot.data.theme || 'chochin')) out.push(`<div class="diff-line diff-chg">デザイン：${esc(themeName(h.prev.data.theme))} → <b>${esc(themeName(h.snapshot.data.theme))}</b></div>`);
   for (const [k, v] of B) {
     if (!A.has(k)) out.push(`<div class="diff-line diff-add">${esc(k + yen(v))}</div>`);
     else if (A.get(k) !== v) out.push(`<div class="diff-line diff-chg">${esc(k)}：${A.get(k) ?? '（なし）'}円 → <b>${v ?? '（なし）'}円</b></div>`);
@@ -695,6 +725,7 @@ document.addEventListener('click', (e) => {
   if (act === 'notice-add') { withName(() => noticeForm()); return; }
   if (act === 'notice-past') { pastNotices(); return; }
   if (act === 'price-edit') { const pl = drink(); if (pl) withName(() => priceForm(pl)); return; }
+  if (act === 'design') { const pl = drink(); if (pl) designPicker(pl); return; }
   if (act === 'price-history') { showHistory('pricelist', 'drink', 'ドリンクメニュー表'); return; }
   if (act.startsWith('notice-')) {
     const n = S.notices.find((x) => x.id === b.dataset.id) || (S.noticeTrash || []).find((x) => x.id === b.dataset.id); if (!n) return;

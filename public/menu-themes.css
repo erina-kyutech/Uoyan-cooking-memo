@@ -1,0 +1,216 @@
+/* ドリンクメニューのデザイン違い。menu-render.js の renderGeneric が作る同じ HTML に、テーマごとの見た目をつける
+   .dm.g = 共通の形 / .dm.t-brush 筆文字カード / .dm.t-wa 縦書き和柄 / .dm.t-hand 手書きイラスト / .dm.t-chalk 黒板 / .dm.t-simple シンプル */
+
+/* ---------- 共通の形 ---------- */
+.dm.g{display:flex;flex-direction:column;background:#fff;padding:34px 40px 24px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.dm.g .top-h{text-align:center;position:relative;flex:none}
+.dm.g .top-h h1{margin:0;font-weight:400;line-height:1}
+.dm.g .top-h h1 > span{position:relative;z-index:0;display:inline-block}
+.dm.g .sub{margin:6px 0 0}
+.dm.g .gg{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;min-height:0;margin-top:18px}
+.dm.g .col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.dm.g .blk{min-width:0}
+.dm.g .bh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dm.g h2{margin:0;font-weight:400;display:flex;align-items:baseline;gap:10px;line-height:1}
+.dm.g h2 .jp{position:relative;z-index:0}
+.dm.g .ic{order:3;margin-left:auto;display:flex;gap:2px;align-items:flex-end}
+.dm.g .ic .ill{height:54px;width:auto}
+.dm.g .bp{order:2}
+.dm.g .grp{margin-top:6px}
+.dm.g .gh{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 10px;margin-top:4px}
+.dm.g .gl{white-space:nowrap}
+.dm.g .gn{font-size:13px;margin:2px 0}
+.dm.g ul li{display:flex;align-items:baseline;gap:6px}
+.dm.g .nm{min-width:0;flex:0 1 auto}
+.dm.g .yen{flex:none}
+.dm.g .ld{flex:1;min-width:12px;border-bottom:2px dotted currentColor;opacity:.3;transform:translateY(-5px)}
+.dm.g .yen{display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;line-height:1}
+.dm.g .yen b{font-weight:700}
+.dm.g .yen small{font-size:.6em;margin-left:1px}
+.dm.g .yen i{font-style:normal;font-size:.72em;margin-right:3px}
+.dm.g .yen em{font-style:normal;font-size:12px;opacity:.75}
+.dm.g .plus{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:10px;line-height:1.2}
+.dm.g .plus em{font-style:normal;font-size:12px}
+.dm.g .bn{font-size:13px;margin-top:8px;line-height:1.45}
+.dm.g .cau{flex:none;font-size:12px;text-align:center;margin-top:12px;line-height:1.4}
+/* 焼酎は2×2で並べる */
+.dm.g .b-shochu .bb{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px}
+
+/* ---------- 1. 筆文字カード ---------- */
+.dm.t-brush .gg{grid-template-columns:290px minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto 1fr;gap:14px;
+  grid-template-areas:"sour highball highball" "sour beer beer" "wine shochu shochu" "soft soft umeshu"}
+.dm.t-brush .b-sour{grid-area:sour}.dm.t-brush .b-highball{grid-area:highball}.dm.t-brush .b-beer{grid-area:beer}
+.dm.t-brush .b-wine{grid-area:wine}.dm.t-brush .b-shochu{grid-area:shochu}.dm.t-brush .b-soft{grid-area:soft}.dm.t-brush .b-umeshu{grid-area:umeshu}
+.dm.t-brush .b-beer .bb{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.dm.t-brush .b-beer .grp:nth-child(3){grid-column:1 / -1}
+.dm.t-brush .b-shochu .bb{grid-template-columns:.85fr 1fr 1.1fr 1.1fr;gap:0 14px}
+.dm.t-brush .b-shochu .gh{flex-direction:column;align-items:flex-start;gap:4px}
+.dm.t-brush .b-shochu .gp{flex-wrap:wrap;row-gap:2px}
+.dm.t-brush .b-shochu .gp em{flex-basis:100%}
+.dm.t-brush .b-shochu li{flex-wrap:wrap}
+.dm.t-brush .b-shochu li .ld{display:none}
+.dm.t-brush .b-shochu li .ip{flex-wrap:wrap;row-gap:2px;margin-left:16px}
+.dm.t-brush .b-shochu li .ip em{flex-basis:100%}
+.dm.t-brush .b-soft ul{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.dm.t-brush .b-sour .bh{flex-direction:column;align-items:flex-start}
+.dm.t-brush .ic{position:absolute;right:14px;top:12px}
+.dm.t-brush .bh{padding-right:96px}
+.dm.t-brush .blk{position:relative}
+.dm.t-brush{color:#2a1a0e;font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
+  background:radial-gradient(ellipse at 30% 20%,#fbf4e4,transparent 60%),radial-gradient(ellipse at 80% 90%,#ead7b2,transparent 55%),#f2e6cd;
+  box-shadow:inset 0 0 0 12px #5b3a22,inset 0 0 0 15px #caa46a}
+.dm.t-brush .top-h h1 > span{font-family:"Yuji Syuku",serif;font-size:70px;letter-spacing:.02em}
+.dm.t-brush .top-h h1 > span::after,.dm.t-brush h2 .jp::after{content:"";position:absolute;z-index:-1;left:-5%;right:-6%;bottom:2px;height:42%;
+  background:#f4c430;border-radius:46% 54% 40% 60% / 60% 40% 60% 40%;transform:rotate(-1.5deg);opacity:.9}
+.dm.t-brush .sub{position:absolute;right:6px;top:-6px;font-family:"Klee One",serif;font-weight:600;font-size:22px;transform:rotate(-6deg);color:#3a2616}
+.dm.t-brush .blk{background:rgba(255,252,244,.95);border:1px solid #e6d3ae;border-radius:16px;padding:12px 16px 12px;box-shadow:0 2px 6px rgba(80,50,20,.16)}
+.dm.t-brush h2 .jp{font-family:"Yuji Syuku",serif;font-size:40px}
+.dm.t-brush h2 .en{display:none}
+.dm.t-brush .yen{color:#c8281e;font-weight:700}
+.dm.t-brush .bp b{font-size:38px}
+.dm.t-brush .gp b{font-size:26px}
+.dm.t-brush .ip b{font-size:22px}
+.dm.t-brush ul{margin-top:4px}
+.dm.t-brush li{font-weight:700;font-size:18px;line-height:1.5}
+.dm.t-brush li .nm::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#e2742b;margin:0 9px 3px 2px}
+.dm.t-brush .ld{opacity:.18}
+.dm.t-brush .gl{background:#c8281e;color:#fff;border-radius:6px;padding:3px 10px 2px;font-size:14px;font-weight:700}
+.dm.t-brush .gn{color:#8a5a2a}
+.dm.t-brush .plus{background:#d8312a;color:#fff;border-radius:12px;padding:9px 14px;font-weight:700;font-size:17px}
+.dm.t-brush .plus b{font-size:24px}
+.dm.t-brush .cau{color:#5b3a22}
+
+/* ---------- 2. 縦書き和柄 ---------- */
+.dm.t-wa{--wa-red:#a51d24;--wa-red2:#bd3a40;color:#231815;font-family:"Shippori Mincho B1","Hiragino Mincho ProN",serif;padding:0 0 20px;
+  background:radial-gradient(circle at 15% 40%,rgba(255,255,255,.6),transparent 40%),#f5efe1}
+.dm.t-wa .top-h{display:flex;align-items:center;justify-content:center;gap:24px;padding:16px 30px 14px;color:#fff;
+  background-color:var(--wa-red);
+  background-image:
+    radial-gradient(circle at 100% 150%,var(--wa-red) 24%,var(--wa-red2) 24%,var(--wa-red2) 28%,var(--wa-red) 28%,var(--wa-red) 36%,var(--wa-red2) 36%,var(--wa-red2) 40%,transparent 40%),
+    radial-gradient(circle at 0 150%,var(--wa-red) 24%,var(--wa-red2) 24%,var(--wa-red2) 28%,var(--wa-red) 28%,var(--wa-red) 36%,var(--wa-red2) 36%,var(--wa-red2) 40%,transparent 40%),
+    radial-gradient(circle at 50% 100%,var(--wa-red2) 10%,var(--wa-red) 10%,var(--wa-red) 23%,var(--wa-red2) 23%,var(--wa-red2) 30%,var(--wa-red) 30%,var(--wa-red) 43%,var(--wa-red2) 43%,var(--wa-red2) 50%,var(--wa-red) 50%,var(--wa-red) 63%,var(--wa-red2) 63%,var(--wa-red2) 71%,transparent 71%),
+    radial-gradient(circle at 100% 50%,var(--wa-red2) 5%,var(--wa-red) 5%,var(--wa-red) 15%,var(--wa-red2) 15%,var(--wa-red2) 20%,var(--wa-red) 20%,var(--wa-red) 29%,var(--wa-red2) 29%,var(--wa-red2) 34%,var(--wa-red) 34%,var(--wa-red) 44%,var(--wa-red2) 44%,var(--wa-red2) 49%,transparent 49%),
+    radial-gradient(circle at 0 50%,var(--wa-red2) 5%,var(--wa-red) 5%,var(--wa-red) 15%,var(--wa-red2) 15%,var(--wa-red2) 20%,var(--wa-red) 20%,var(--wa-red) 29%,var(--wa-red2) 29%,var(--wa-red2) 34%,var(--wa-red) 34%,var(--wa-red) 44%,var(--wa-red2) 44%,var(--wa-red2) 49%,transparent 49%);
+  background-size:80px 40px}
+.dm.t-wa .top-h h1 > span{font-family:"Yuji Syuku",serif;font-size:52px;letter-spacing:.12em;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.dm.t-wa .sub{margin:0;font-size:20px;letter-spacing:.2em;border:1.5px solid rgba(255,255,255,.8);padding:4px 12px}
+.dm.t-wa .gg{display:flex;flex-direction:column;gap:0;margin:0;padding:0 26px}
+.dm.t-wa .col{writing-mode:vertical-rl;flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:20px;padding:16px 0;border-bottom:2px solid rgba(165,29,36,.55);min-height:0}
+.dm.t-wa .col:last-child{border-bottom:0}
+.dm.t-wa .blk{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.dm.t-wa .bh{flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:10px;background:var(--wa-red);color:#fff;padding:14px 8px;
+  box-shadow:inset 0 0 0 3px var(--wa-red),inset 0 0 0 4px rgba(255,255,255,.55)}
+.dm.t-wa h2{gap:4px}
+.dm.t-wa h2 .jp{font-family:"Yuji Syuku",serif;font-size:34px;letter-spacing:.08em}
+.dm.t-wa h2 .en{display:none}
+.dm.t-wa .ic{display:none}
+.dm.t-wa .bp{margin-inline-start:auto;color:#fff}
+.dm.t-wa .bb{display:flex;flex-direction:column;gap:8px}
+.dm.t-wa .b-shochu .bb{display:flex}
+.dm.t-wa .grp{margin:0;display:flex;flex-direction:column}
+.dm.t-wa .gh{flex-direction:row;justify-content:flex-start;align-items:center;margin:0;gap:10px}
+.dm.t-wa .gp{margin-inline-start:auto}
+.dm.t-wa .gl{color:var(--wa-red);font-weight:700;font-size:17px}
+.dm.t-wa .gl::before{content:"〈"}.dm.t-wa .gl::after{content:"〉"}
+.dm.t-wa .gn{font-size:13px;color:#6b4a3a}
+.dm.t-wa ul{display:flex;flex-direction:column}
+.dm.t-wa li{font-size:19px;line-height:1.42;font-weight:600}
+.dm.t-wa .nm{white-space:normal}
+.dm.t-wa .nm::before{content:"・";color:var(--wa-red)}
+.dm.t-wa .ld{border:0;transform:none;opacity:1;margin:6px 0;background:radial-gradient(circle,rgba(70,40,30,.5) 1.2px,transparent 1.7px) center top / 100% 8px repeat-y}
+.dm.t-wa .yen{flex-direction:row;align-items:center;gap:4px;color:var(--wa-red)}
+.dm.t-wa .bp.yen{color:#fff}
+.dm.t-wa .yen b{font-size:22px;font-weight:700}
+.dm.t-wa .yen .num{text-orientation:upright;letter-spacing:-.08em}
+.dm.t-wa .yen em{font-size:11px;opacity:.85}
+.dm.t-wa .yen em .num{text-combine-upright:all;letter-spacing:0}
+.dm.t-wa .plus{color:var(--wa-red);font-weight:700;font-size:17px;border:1.5px solid var(--wa-red);padding:10px 6px;margin:0;gap:6px}
+.dm.t-wa .plus .num{text-orientation:upright}
+.dm.t-wa .plus em .num{text-combine-upright:all}
+.dm.t-wa .bn{font-size:13px;margin:0;color:#5a3a2e}
+.dm.t-wa .cau{color:#5a3a2e;margin-top:6px}
+
+/* ---------- 3. 手書きイラスト ---------- */
+.dm.t-hand{color:#1d1a17;font-family:"Klee One","Hiragino Maru Gothic ProN",serif;background:#fffdf7;padding:44px 52px 26px}
+.dm.t-hand .top-h h1 > span{font-family:"Yusei Magic",sans-serif;font-size:66px}
+.dm.t-hand .top-h h1 > span::after{content:"DRINK MENU";position:absolute;left:0;right:0;bottom:-26px;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:16px;letter-spacing:.4em;color:#d23a2a}
+.dm.t-hand .sub{position:absolute;right:0;top:4px;font-weight:600;font-size:19px;color:#d23a2a;transform:rotate(4deg)}
+.dm.t-hand .gg{margin-top:40px;gap:44px}
+.dm.t-hand .col{gap:20px}
+.dm.t-hand .bh{align-items:flex-end}
+.dm.t-hand h2{flex-direction:column;align-items:flex-start;gap:4px}
+.dm.t-hand h2 .jp{font-family:"Yusei Magic",sans-serif;font-size:40px}
+.dm.t-hand h2 .en{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:14px;letter-spacing:.16em;color:#d23a2a}
+.dm.t-hand .ic{margin-left:4px;order:1}
+.dm.t-hand .bp{order:3;margin-left:auto;margin-bottom:6px}
+.dm.t-hand .yen b{font-family:"Zen Kaku Gothic New",sans-serif;font-size:20px}
+.dm.t-hand .bp b{font-size:26px;color:#d23a2a}
+.dm.t-hand .gp b{font-size:20px}
+.dm.t-hand ul{margin-top:2px}
+.dm.t-hand li{font-size:19.5px;line-height:1.4;font-weight:600}
+.dm.t-hand .gl{font-weight:600;font-size:15px;color:#d23a2a;border-bottom:1.5px solid #d23a2a}
+.dm.t-hand .gn{color:#7a6a5a}
+.dm.t-hand .plus{color:#d23a2a;border:2px solid #d23a2a;border-radius:10px;padding:7px 12px;font-weight:600;font-size:16px}
+.dm.t-hand .plus b{font-family:"Zen Kaku Gothic New",sans-serif;font-size:20px}
+.dm.t-hand .cau{border-top:1.5px dashed #bbb;padding-top:10px;color:#666}
+
+/* ---------- 4. 黒板 ---------- */
+.dm.t-chalk{color:#f2efe4;font-family:"Klee One",serif;padding:50px 54px 34px;
+  background:radial-gradient(ellipse at 20% 15%,rgba(255,255,255,.08),transparent 45%),radial-gradient(ellipse at 85% 80%,rgba(255,255,255,.06),transparent 50%),#263a30;
+  box-shadow:inset 0 0 0 18px #7a5434,inset 0 0 0 22px #563820,inset 0 0 70px 30px rgba(0,0,0,.35)}
+.dm.t-chalk .top-h h1 > span{font-family:"Yusei Magic",sans-serif;font-size:58px;color:#fff;text-shadow:0 0 2px rgba(255,255,255,.5)}
+.dm.t-chalk .sub{color:#f6e27a;font-size:20px;font-weight:600}
+.dm.t-chalk .gg{gap:40px}
+.dm.t-chalk .col{gap:18px}
+.dm.t-chalk h2 .jp{font-family:"Yusei Magic",sans-serif;font-size:36px;padding-bottom:6px;border-bottom:3px dashed currentColor}
+.dm.t-chalk h2 .en{font-size:13px;letter-spacing:.18em;opacity:.65;font-weight:600;color:#f2efe4}
+.dm.t-chalk .b-sour .jp{color:#f6e27a}.dm.t-chalk .b-highball .jp{color:#f7b267}.dm.t-chalk .b-beer .jp{color:#ffe08a}
+.dm.t-chalk .b-wine .jp{color:#f4a7b9}.dm.t-chalk .b-shochu .jp{color:#b8e08a}.dm.t-chalk .b-soft .jp{color:#9fd3f0}.dm.t-chalk .b-umeshu .jp{color:#f4a7b9}
+.dm.t-chalk .ic{filter:saturate(.55) brightness(1.15);opacity:.9}
+.dm.t-chalk .yen{color:#f6e27a}
+.dm.t-chalk .yen em{color:#f2efe4;opacity:.6}
+.dm.t-chalk .bp b{font-size:30px}
+.dm.t-chalk .gp b,.dm.t-chalk .ip b{font-size:21px}
+.dm.t-chalk ul{margin-top:4px}
+.dm.t-chalk li{font-size:19.5px;line-height:1.33;font-weight:600}
+.dm.t-chalk .ld{opacity:.35}
+.dm.t-chalk .gl{color:#9fd3f0;font-weight:600;font-size:16px}
+.dm.t-chalk .gn{color:#f4a7b9}
+.dm.t-chalk .plus{color:#f4a7b9;border:2px dashed #f4a7b9;border-radius:12px;padding:8px 12px;font-weight:600;font-size:16px}
+.dm.t-chalk .plus b{font-size:22px}
+.dm.t-chalk .bn{opacity:.8}
+.dm.t-chalk .cau{opacity:.7}
+
+/* ---------- 5. シンプル ---------- */
+.dm.t-simple{color:#1d232c;font-family:"Zen Kaku Gothic New","Hiragino Sans",sans-serif;background:#fff;padding:0 0 22px}
+.dm.t-simple .top-h{display:flex;align-items:baseline;justify-content:space-between;gap:16px;background:#1f2a37;color:#fff;padding:22px 40px;text-align:left}
+.dm.t-simple .top-h h1 > span{font-size:42px;font-weight:700;letter-spacing:.08em}
+.dm.t-simple .sub{margin:0;font-size:18px;opacity:.75;letter-spacing:.2em}
+.dm.t-simple .gg{margin:0;padding:22px 32px 0;gap:22px}
+.dm.t-simple .col{gap:14px}
+.dm.t-simple .b-sour{--c:#c77c00}.dm.t-simple .b-highball{--c:#a85a1c}.dm.t-simple .b-beer{--c:#a87700}.dm.t-simple .b-wine{--c:#8e2040}
+.dm.t-simple .b-shochu{--c:#5a4632}.dm.t-simple .b-soft{--c:#d0571f}.dm.t-simple .b-umeshu{--c:#7b2d56}
+.dm.t-simple .blk{border:2px solid var(--c,#333);border-radius:12px;overflow:hidden}
+.dm.t-simple .bh{background:var(--c,#333);color:#fff;padding:8px 14px;gap:10px}
+.dm.t-simple h2 .jp{font-size:26px;font-weight:700}
+.dm.t-simple h2 .en{font-size:12px;letter-spacing:.14em;opacity:.85;font-weight:700}
+.dm.t-simple .ic{display:none}
+.dm.t-simple .bp{margin-left:auto;background:#fff;color:var(--c);border-radius:999px;padding:4px 12px}
+.dm.t-simple .bp b{font-size:22px}
+.dm.t-simple .bp em{opacity:.85}
+.dm.t-simple .bb{padding:4px 14px 8px}
+.dm.t-simple .gh{border-bottom:1px solid #e6e8ec;padding-bottom:2px}
+.dm.t-simple .gl{font-weight:700;font-size:15px;color:var(--c)}
+.dm.t-simple .gp b{font-size:20px}
+.dm.t-simple li{font-size:18px;line-height:1.55;border-bottom:1px solid #eef0f3;font-weight:500}
+.dm.t-simple li:last-child{border-bottom:0}
+.dm.t-simple .ld{opacity:0}
+.dm.t-simple .ip b{font-size:20px}
+.dm.t-simple .yen em{color:#5b6573;opacity:1}
+.dm.t-simple .gn{color:#5b6573}
+.dm.t-simple .plus{background:#fff4e5;color:#a8430e;border-radius:8px;padding:8px 12px;font-weight:700;font-size:16px;margin:6px 0 2px}
+.dm.t-simple .plus b{font-size:20px}
+.dm.t-simple .bn{color:#5b6573;padding:0 14px 10px;margin:0}
+.dm.t-simple .cau{color:#5b6573}
+
+.dm.t-wa .b-soft h2 .jp{font-size:27px;letter-spacing:0}

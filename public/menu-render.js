@@ -171,5 +171,82 @@
     return out;
   }
 
-  window.DrinkMenu = { render, tax, flatten };
+  // ================= デザイン違い（同じデータから描く） =================
+  // ちょうちん（最初のデザイン）以外は、同じ HTML の形を使って、CSS（menu-themes.css）で見た目を変える
+  const THEMES = [
+    { id: 'chochin', name: 'ちょうちん', desc: 'いまのメニュー表に近いデザイン' },
+    { id: 'brush', name: '筆文字カード', desc: '筆文字の見出しとカードで、写真メニュー風' },
+    { id: 'wa', name: '縦書き和柄', desc: '赤い札と青海波の、居酒屋らしい縦書き' },
+    { id: 'hand', name: '手書きイラスト', desc: '白い紙に手書き文字とイラスト' },
+    { id: 'chalk', name: '黒板', desc: '黒板にチョークで書いたような' },
+    { id: 'simple', name: 'シンプル', desc: '色分けと大きな値段で、いちばん読みやすい' },
+  ];
+  const EN = { sour: 'SOUR', highball: 'HIGHBALL', beer: 'BEER', wine: 'WINE', shochu: 'SHOCHU', soft: 'SOFT DRINK', umeshu: 'UMESHU' };
+  const ICON = {
+    sour: () => glass('#f3d36b', 40, 80) + glass('#e0566a', 40, 80),
+    highball: () => glass('#e9b54a', 40, 80) + glass('#5a2a16', 40, 80),
+    beer: () => mug(66, 76),
+    wine: () => wine('#f3e9a8', 30, 74) + wine('#6d1420', 30, 74),
+    shochu: () => bottle('#f4f1ea', '#e9e2d0', 26, 92) + bottle('#2a1e14', '#6a1f14', 26, 92),
+    soft: () => tumbler('#4a2312', 50, 58) + tumbler('#f0a83a', 50, 58),
+    umeshu: () => tumbler('#d9963a', 50, 58) + tumbler('#6e1d1a', 50, 58),
+  };
+  const SUB = { brush: '今日もおつかれさま！', wa: 'うおやんのお飲みもの', hand: 'まずはこれで乾杯！', chalk: '本日のドリンク', simple: 'うおやん' };
+  // どのブロックをどの列（縦書き和柄は段）に置くか。ここに無いブロックは最後の列に入る
+  const LAYOUT = {
+    brush: 'areas', // 筆文字カードは列で分けず、CSS の grid-template-areas で置く
+    wa: [['sour', 'highball'], ['beer', 'wine', 'soft'], ['shochu', 'umeshu']],
+    hand: [['sour', 'highball', 'wine', 'umeshu'], ['beer', 'shochu', 'soft']],
+    chalk: [['sour', 'highball', 'soft'], ['beer', 'shochu', 'wine', 'umeshu']],
+    simple: [['sour', 'highball', 'wine', 'umeshu'], ['beer', 'shochu', 'soft']],
+  };
+
+  // 値段（「各」つき・税込つき）
+  const yen = (p, each, cls = '') => `<span class="yen ${cls}"><b>${each ? '<i>各</i>' : ''}<span class="num">${p}</span><small>円</small></b><em>（税込<span class="num">${tax(p)}</span>円）</em></span>`;
+
+  function blockHtml(b) {
+    const groups = (b.groups || []).map((g) => {
+      const items = g.items || [];
+      if (g.plus) {
+        const it = items[0]; if (!it) return '';
+        return `<div class="plus"><span>${esc(it.name.replace(/^※/, ''))}</span><b>＋<span class="num">${it.price ?? ''}</span>円</b><em>（税込<span class="num">${it.price != null ? tax(it.price) : ''}</span>円）</em></div>`;
+      }
+      const head = g.label || g.price != null
+        ? `<div class="gh">${g.label ? `<span class="gl">${esc(g.label)}</span>` : ''}${g.price != null ? yen(g.price, items.length > 1, 'gp') : ''}</div>` : '';
+      return `<div class="grp">${head}${g.note ? `<p class="gn">${esc(g.note)}</p>` : ''}
+        <ul>${items.map((i) => `<li><span class="nm">${esc(i.name)}</span>${i.price != null ? `<span class="ld"></span>${yen(i.price, false, 'ip')}` : ''}</li>`).join('')}</ul></div>`;
+    }).join('');
+    return `<section class="blk b-${esc(b.key)}">
+      <div class="bh"><h2><span class="jp">${esc(b.title)}</span>${EN[b.key] ? `<span class="en">${EN[b.key]}</span>` : ''}</h2>
+        ${ICON[b.key] ? `<span class="ic">${ICON[b.key]()}</span>` : ''}
+        ${b.price != null ? yen(b.price, true, 'bp') : ''}</div>
+      <div class="bb">${groups}</div>${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}</section>`;
+  }
+
+  function renderGeneric(d, theme) {
+    const blocks = d.blocks || [];
+    const lay = LAYOUT[theme];
+    let body;
+    if (lay === 'areas') body = blocks.map(blockHtml).join('');
+    else {
+      const cols = (lay || [blocks.map((b) => b.key)]).map((keys) => blocks.filter((b) => keys.includes(b.key)));
+      const placed = new Set(cols.flat());
+      for (const b of blocks) if (!placed.has(b)) cols[cols.length - 1].push(b);
+      body = cols.map((c, i) => `<div class="col col-${i + 1}">${c.map(blockHtml).join('')}</div>`).join('');
+    }
+    return `<div class="dm g t-${theme}">
+      <header class="top-h"><h1><span>${esc(d.title || 'ドリンクメニュー')}</span></h1><p class="sub">${esc(SUB[theme] || '')}</p></header>
+      <div class="gg">${body}</div>
+      ${d.caution ? `<footer class="cau">${esc(d.caution)}</footer>` : ''}
+    </div>`;
+  }
+
+  const renderClassic = render;
+  function renderAny(d, theme) {
+    theme = theme || (d && d.theme) || 'chochin';
+    if (!THEMES.some((t) => t.id === theme)) theme = 'chochin';
+    return theme === 'chochin' ? renderClassic(d) : renderGeneric(d, theme);
+  }
+
+  window.DrinkMenu = { render: renderAny, tax, flatten, THEMES };
 })();

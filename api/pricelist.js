@@ -6,6 +6,7 @@ const { J, sql, handler, HttpError, text, editorName, int } = require('../lib/co
 //   POST /api/pricelist { action:'update', id, version, data, editor } … 保存（version が違えば 409 で最新を返す）
 //   POST /api/pricelist { action:'revert', history_id, editor }        … 履歴の状態に戻す
 const ID_RE = /^[a-z]{1,20}$/;
+const THEMES = ['chochin', 'brush', 'wa', 'hand', 'chalk', 'simple']; // public/menu-render.js の THEMES と同じ
 const listId = (v) => { if (typeof v !== 'string' || !ID_RE.test(v)) throw new HttpError(404, 'not_found'); return v; };
 
 const get = handler('GET', async (req) => {
@@ -32,6 +33,7 @@ function cleanDoc(d) {
   d = d && typeof d === 'object' ? d : {};
   return {
     title: text(d.title, 30, { field: 'title' }),
+    theme: THEMES.includes(d.theme) ? d.theme : undefined,
     caution: text(d.caution, 200, { field: 'caution' }),
     blocks: arr(d.blocks, 20, 'blocks').map((b) => ({
       key: typeof b.key === 'string' && ID_RE.test(b.key) ? b.key : 'block',

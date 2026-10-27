@@ -156,6 +156,11 @@ const test = async (name, fn) => { await fn(); console.log('  ✓ ' + name); n++
     assert.deepStrictEqual(h.body.history.map((x) => x.action), ['update', 'create']);
     const rv = await api('pricelist', { action: 'revert', editor: 'えりな', history_id: h.body.history[1].id }); ok(rv, 'revert');
     assert.strictEqual(rv.body.pricelist.data.blocks.find((b) => b.key === 'sour').price, 400);
+    // デザイン: 決まったものだけ保存される
+    const t1 = await api('pricelist', { action: 'update', id: 'drink', version: rv.body.pricelist.version, data: { ...rv.body.pricelist.data, theme: 'wa' }, editor: 'えりな' });
+    assert.strictEqual(t1.body.pricelist.data.theme, 'wa');
+    const t2 = await api('pricelist', { action: 'update', id: 'drink', version: t1.body.pricelist.version, data: { ...t1.body.pricelist.data, theme: '<script>' }, editor: 'えりな' });
+    assert.strictEqual(t2.body.pricelist.data.theme, undefined);
   });
 
   // 後片付け: テストで作ったメニューはゴミ箱へ

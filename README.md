@@ -32,7 +32,7 @@
 - `api/category.js`（POST）: 共通メモの `update` / `revert`
 - `api/notice.js`（POST）: お知らせの `create` / `update` / `delete` / `restore` / `revert`
 - `api/pricelist.js`（GET `?id=drink` / POST `update`・`revert`）: メニュー表。1枚分を JSON でまとめて保存。初期データは `db/drink.json`
-- 見た目は `public/menu-render.js`（データ→HTML）と `public/menu.css`。1000×1414px で組んで、印刷時に A4 に合わせる
+- 見た目は `public/menu-render.js`（データ→HTML）と `public/menu.css`（ちょうちん）・`public/menu-themes.css`（筆文字カード・縦書き和柄・手書きイラスト・黒板・シンプル）。1000×1414px で組んで、印刷時に A4 に合わせる。デザインは data.theme に保存、`/menu.html?theme=wa` のように見本も開ける
 
 テーブルは `db/schema.sql`。**API が最初に動いたときに自動で作られ、`db/seed.json` の初期メニューが1回だけ入る**（`npm run migrate` は不要）。
 どの変更も「メニューを変える」と「履歴を1行足す」を1つのSQL文で行うので、片方だけ成功することはない。
