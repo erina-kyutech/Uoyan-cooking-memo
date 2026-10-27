@@ -15,6 +15,7 @@
   // 提灯の見出し
   // 文字が多いときは小さくして、提灯の中に収める
   const lantern = (title, h) => {
+    if (!title) return '';
     const len = [...String(title || '')].length || 1;
     const fs = Math.min(40, Math.floor((h - 34) / len));
     return `<div class="lantern" style="height:${h}px;--fs:${fs}px"><span>${esc(title)}</span></div>`;
@@ -151,10 +152,20 @@
       ${lantern(ume.title, 230)}
     </div>`;
 
-    return `<div class="dm">
+    // 7種類以外（あとから足した種類）は、いちばん下に段を足して並べる
+    const KNOWN = ['sour', 'highball', 'beer', 'wine', 'shochu', 'soft', 'umeshu'];
+    const extra = (d.blocks || []).filter((b) => !KNOWN.includes(b.key));
+    const extraHtml = extra.length ? `<div class="line"></div><div class="xrow">${extra.map((b) => `<div class="xblk">
+        ${lantern(b.title, 200)}
+        <div class="xbody">${(b.groups || []).map((g) => `<div class="xgrp">${g.label ? `<b class="br-label">【${esc(g.label)}】</b>` : ''}
+          <ul class="xlist">${(g.items || []).map((i) => `<li><span>${esc(i.name)}</span>${i.price != null ? price(i.price, { size: 's' }) : ''}</li>`).join('')}</ul>
+          ${g.price != null ? price(g.price, { each: (g.items || []).length > 1, size: 'm' }) : ''}</div>`).join('')}
+          ${b.price != null ? `<div class="xprice">${price(b.price, { each: true, size: 'm' })}</div>` : ''}${b.note ? `<p class="xnote">${esc(b.note)}</p>` : ''}</div>
+        <div class="xill">${window.MenuIllust ? window.MenuIllust.scene(b.key) : ''}</div></div>`).join('')}</div>` : '';
+    return `<div class="dm"><div class="dm-in">
       <div class="top">${sourHtml}<div class="top-r">${hbHtml}${beerHtml}</div></div>
-      <div class="line"></div>${midHtml}<div class="line"></div>${botHtml}
-    </div>`;
+      <div class="line"></div>${midHtml}<div class="line"></div>${botHtml}${extraHtml}
+    </div></div>`;
   }
 
   // 何が変わったか比べる用: 「サワー／プレーン」→ 値段 のような平らな一覧にする
@@ -190,6 +201,7 @@
     shochu: () => bottle('#f4f1ea', '#e9e2d0', 26, 92) + bottle('#2a1e14', '#6a1f14', 26, 92),
     soft: () => tumbler('#4a2312', 50, 58) + tumbler('#f0a83a', 50, 58),
     umeshu: () => tumbler('#d9963a', 50, 58) + tumbler('#6e1d1a', 50, 58),
+    other: () => tumbler('#e9b54a', 50, 58),
   };
   const SUB = { brush: '今日もおつかれさま！', wa: 'うおやんのお飲みもの', hand: 'まずはこれで乾杯！', chalk: '本日のドリンク', simple: 'うおやん' };
   // どのブロックをどの列（縦書き和柄は段）に置くか。ここに無いブロックは最後の列に入る
@@ -220,7 +232,7 @@
     const sc = window.MenuIllust ? window.MenuIllust.scene(b.key) : '';
     return `<section class="blk b-${esc(b.key)}${hasIp ? ' has-ip' : ''}">
       <div class="bh"><h2><span class="jp">${esc(b.title)}</span>${EN[b.key] ? `<span class="en">${EN[b.key]}</span>` : ''}</h2>
-        ${ICON[b.key] ? `<span class="ic">${ICON[b.key]()}</span>` : ''}
+        <span class="ic">${(ICON[b.key] || ICON.other)()}</span>
         ${b.price != null ? yen(b.price, true, 'bp') : ''}</div>
       <div class="bb">${groups}</div>${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}${sc ? `<span class="sc">${sc}</span>` : ''}</section>`;
   }
@@ -236,11 +248,11 @@
       for (const b of blocks) if (!placed.has(b)) cols[cols.length - 1].push(b);
       body = cols.map((c, i) => `<div class="col col-${i + 1}">${c.map(blockHtml).join('')}</div>`).join('');
     }
-    return `<div class="dm g t-${theme}">
+    return `<div class="dm g t-${theme}"><div class="dm-in">
       <header class="top-h">${window.MenuIllust ? window.MenuIllust.deco('left') : ''}<h1><span>${esc(d.title || 'ドリンクメニュー')}</span></h1><p class="sub">${esc(SUB[theme] || '')}</p>${window.MenuIllust ? window.MenuIllust.deco('right') : ''}</header>
       <div class="gg">${body}</div>
       ${d.caution ? `<footer class="cau">${esc(d.caution)}</footer>` : ''}
-    </div>`;
+    </div></div>`;
   }
 
   const renderClassic = render;
@@ -250,5 +262,70 @@
     return theme === 'chochin' ? renderClassic(d) : renderGeneric(d, theme);
   }
 
-  window.DrinkMenu = { render: renderAny, tax, flatten, THEMES };
+  // ===== 1枚に収める =====
+  // はみ出していたら、中身（.dm-in）を広く組んでから縮める。0.03ずつ、最小 0.7 倍まで。
+  // 何倍になったか（scale）と、それでも収まったか（fits）を返す
+  function overflowing(inner) {
+    const r = inner.getBoundingClientRect();
+    const k = r.width / inner.offsetWidth; // 親の縮小も含めた倍率
+    if (!k) return false;
+    const boxes = [inner, ...inner.children, ...inner.querySelectorAll('.hb,.beer,.blk,.xblk,.col')];
+    for (const c of boxes) {
+      const cr = c.getBoundingClientRect();
+      // 文字と値段だけを見る（飾りの絵は、少しはみ出しても読めるので数えない）
+      for (const el of c.querySelectorAll('li,span,b,p,h2,h3,.pr,.yen,.plus,.lantern')) {
+        if (el.closest('svg,.sc,.deco')) continue;
+        const e = el.getBoundingClientRect();
+        if (!e.width && !e.height) continue;
+        if ((e.bottom - cr.bottom) / k > 8 || (e.right - cr.right) / k > 8) return true;
+      }
+    }
+    return false;
+  }
+  const hit = (a, b, m = 2) => a.left < b.right - m && a.right > b.left + m && a.top < b.bottom - m && a.bottom > b.top + m;
+  // ちょうちん: サワーの品が増えると、下の「各400円」や赤い札とぶつかる
+  function colliding(inner) {
+    const blockers = [...inner.querySelectorAll('.sour-price .pr,.pill')].map((e) => e.getBoundingClientRect());
+    if (!blockers.length) return false;
+    const rg = document.createRange();
+    return [...inner.querySelectorAll('.sour li')].some((li) => { rg.selectNodeContents(li); const r = rg.getBoundingClientRect(); return blockers.some((b) => hit(r, b)); });
+  }
+  // 飾りの絵が文字にかぶったら、その絵は出さない
+  function hideCoveringArt(inner) {
+    // 文字が実際にある範囲（行の箱ではなく、文字そのもの）で比べる
+    const rg = document.createRange();
+    const texts = [];
+    for (const e of inner.querySelectorAll('.nm,.yen,.pr,li,h1 span,h2 .jp,h2 .en,.gl,.plus,.bn,.gn,.sub,.cau,.xlist li')) {
+      if (e.closest('.sc,.deco')) continue;
+      rg.selectNodeContents(e);
+      for (const r of rg.getClientRects()) if (r.width) texts.push(r);
+    }
+    for (const art of inner.querySelectorAll('.sc,.deco')) {
+      if (getComputedStyle(art).display === 'none') continue;
+      const r = art.getBoundingClientRect();
+      if (texts.some((t) => hit(r, t, 4))) art.style.setProperty('display', 'none', 'important');
+    }
+  }
+  function fit(dm) {
+    const inner = dm && dm.querySelector('.dm-in');
+    if (!inner) return { scale: 1, fits: true };
+    const set = (v) => {
+      inner.style.width = v === 1 ? '' : (100 / v) + '%';
+      inner.style.height = v === 1 ? '' : (100 / v) + '%';
+      inner.style.transform = v === 1 ? '' : 'scale(' + v + ')';
+    };
+    let s = 1; set(1);
+    for (const a of inner.querySelectorAll('.sc,.deco')) a.style.removeProperty('display');
+    const bad = () => overflowing(inner) || colliding(inner);
+    while (s > 0.7 && bad()) { s = Math.round((s - 0.03) * 100) / 100; set(s); }
+    hideCoveringArt(inner);
+    return { scale: s, fits: !bad() };
+  }
+  // 入れ物に描いて、収める
+  function mount(el, d, theme) {
+    el.innerHTML = renderAny(d, theme);
+    return fit(el.querySelector('.dm'));
+  }
+
+  window.DrinkMenu = { render: renderAny, tax, flatten, THEMES, fit, mount };
 })();

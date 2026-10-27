@@ -96,11 +96,12 @@
     wine: () => `${grapes(150, 102, 13)}${wglass(30, 18, 54, 124, '#7a1424')}${wglass(82, 30, 50, 114, '#efe39a')}`,
     shochu: () => `${bottle(18, 6, 40, 138, '#f3efe6', '#e5dcc6', '#d9d3c4')}${bottle(64, 14, 38, 130, '#2e2016', '#7a2a1a', '#2a1a10')}${rock(110, 72, 72, 68, '#f3e6c4')}`,
     soft: () => `${tall(26, 14, 60, 126, '#4a2312', { straw: '#e5483a' })}${tall(92, 26, 56, 114, '#f6a630', { straw: '#3a9a5a' })}${orange(160, 120, 22)}${lemon(180, 92, 14)}`,
+    other: () => `${rock(34, 60, 76, 80, '#e9b54a')}${tall(112, 22, 54, 118, '#f3d36b', { lemonIn: true })}${lemon(30, 126, 16)}`,
     umeshu: () => `${rock(20, 62, 78, 78, '#d98f2e')}${rock(96, 70, 72, 70, '#7a1e22')}${ume(176, 122, 16)}${ume(152, 132, 13, '#c4d65e')}${leaf(168, 100, 22, -40)}`,
   };
 
   function scene(key, cls = '') {
-    const f = SCENES[key];
+    const f = SCENES[key] || SCENES.other; // あとから足した種類は、グラスとレモンの絵
     return f ? `<svg class="scene ${cls}" viewBox="0 0 200 150" aria-hidden="true">${f()}</svg>` : '';
   }
   // 見出しの飾り（レモンとグラス／ジョッキ）

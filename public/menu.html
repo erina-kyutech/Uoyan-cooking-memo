@@ -56,12 +56,12 @@
     if (!r.ok) throw new Error(j.error || r.status);
     const p = j.pricelist;
     const th = new URLSearchParams(location.search).get('theme');
-    stage.innerHTML = DrinkMenu.render(p.data, th);
     stage.hidden = false; msg.hidden = true;
+    const draw = () => { stage.innerHTML = ''; stage.innerHTML = DrinkMenu.render(p.data, th); fit(); DrinkMenu.fit(stage.firstElementChild); };
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
     const t = new Date(p.updated_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'numeric', day: 'numeric' });
     document.getElementById('info').textContent = '最終更新：' + t + (p.updated_by && p.updated_by !== '初期データ' ? '（' + p.updated_by + 'さん）' : '');
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
-    fit();
   } catch (e) {
     msg.textContent = 'メニュー表を読み込めなかった。電波を確認して、開き直してね';
   }

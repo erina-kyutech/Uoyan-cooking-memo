@@ -18,6 +18,7 @@ const ERRORS = {
   too_long_tags: '時間タグの1行が長すぎるよ（40文字まで）', too_many_tags: '時間タグは10行までにしてね',
   too_long_plating: '盛り付けが長すぎるよ（300文字まで）', too_long_memo: 'メモが長すぎるよ（300文字まで）',
   too_long_note_steps: '共通メモの1行が長すぎるよ', too_many_note_steps: '共通メモは30行までにしてね', too_long_note_title: '見出しが長すぎるよ（40文字まで）',
+  required_block_title: '種類の名前が空のところがあるよ', too_many_blocks: '種類は20個までにしてね', too_many_groups: '小見出しのまとまりは1つの種類に10個までにしてね', too_many_items: '1つのまとまりに入れられるのは30品までだよ',
   required_item_name: '品名が空の行があるよ。入れるか「×」で消してね', invalid_price: '値段は数字だけで入れてね（例：450）',
   required_title: 'タイトルを入れてね', too_long_title: 'タイトルが長すぎるよ（60文字まで）', too_long_body: '本文が長すぎるよ（1000文字まで）',
   not_found: '見つからなかった。もう一度読み込んでね',
@@ -221,7 +222,7 @@ function designPicker(pl) {
       <span class="thumb">${DrinkMenu.render(pl.data, t.id)}</span><span><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></span></button>`).join('')}</div>
     <p class="err" id="dzErr" hidden></p>
     <div class="sheet-actions"><button class="btn" type="button" id="dzClose">閉じる</button></div>`);
-  const fitThumbs = () => { for (const th of s.querySelectorAll('.thumb')) th.firstElementChild.style.transform = 'scale(' + th.clientWidth / 1000 + ')'; };
+  const fitThumbs = () => { for (const th of s.querySelectorAll('.thumb')) { th.firstElementChild.style.transform = 'scale(' + th.clientWidth / 1000 + ')'; DrinkMenu.fit(th.firstElementChild); } };
   fitThumbs(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitThumbs);
   $('#dzClose', s).onclick = closeSheet;
   s.querySelector('.dz').addEventListener('click', (e) => {
@@ -245,47 +246,57 @@ function fitPreview() {
   const sc = box.clientWidth / 1000;
   dm.style.transform = 'scale(' + sc + ')';
   box.style.height = Math.round(1414 * sc) + 'px';
+  DrinkMenu.fit(dm);
 }
 addEventListener('resize', fitPreview);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPreview);
 
-// 値段・品名の編集。data をコピーして、入力のたびに書き換える。保存は1枚まるごと
+// 値段・品名の編集。種類（ブロック）・小見出し（グループ）・品を、追加・削除・名前変更できる。
+// data をコピーして、入力のたびに書き換える。保存は1枚まるごと
 function priceForm(pl) {
   let version = pl.version;
   const d = JSON.parse(JSON.stringify(pl.data));
   const orig = new Map(DrinkMenu.flatten(pl.data).map((x) => [x.key, x.price]));
-  const s = openSheet(`<h3>ドリンクメニューの値段・品名</h3>
-    <p style="margin:0;font-size:.85rem;color:var(--muted)">値段は税抜きで入れてね（税込は自動）。変えたところは色がつくよ。</p>
+  let confirmDel = ''; // 種類・小見出しは2回押しで消す
+  let fitOk = '';      // 縮小の警告を見たうえでの2回目の保存か
+  const s = openSheet(`<h3>ドリンクメニューを編集</h3>
+    <p style="margin:0;font-size:.85rem;color:var(--muted)">値段は税抜き（税込は自動）。「各」に値段を入れると、その中が全部同じ値段になるよ。変えたところは色がつく。</p>
     <div class="warnbox" id="peConflict" hidden></div>
     <div class="pe" id="pe"></div>
+    <button class="btn add-btn" type="button" id="peAddBlock">＋ 種類を追加（例：日本酒）</button>
+    <div class="warnbox" id="peFit" hidden></div>
     <p class="err" id="peErr" hidden></p>
     <div class="sheet-actions"><button class="btn" type="button" id="peCancel">やめる</button><button class="btn btn-accent" type="button" id="peSave">保存する</button></div>`);
   const box = $('#pe', s);
-  const priceBox = (path, v, key) => `<span class="pe-price"><input inputmode="numeric" data-path="${path}" data-key="${esc(key)}" value="${v ?? ''}" aria-label="値段"></span>`;
-  const taxText = (v) => (/^\d+$/.test(String(v)) ? `税込${DrinkMenu.tax(Number(v))}円` : '');
-  const itemsHavePrice = (b, g) => g.items.some((i) => i.price != null && i.price !== '') || (g.price == null && b.price == null);
+  const taxText = (v) => (/^\d+$/.test(String(v ?? '').trim()) ? `税込${DrinkMenu.tax(Number(v))}円` : '');
+  const priceBox = (path, v, key, ph) => `<span class="pe-price"><input inputmode="numeric" data-path="${path}" data-key="${esc(key)}" value="${v ?? ''}" placeholder="${ph}" aria-label="値段"></span>`;
+  const each = (path, v, key) => `<div class="pe-each">各 ${priceBox(path, v, key, 'なし')}<span class="pe-tax" data-tax="${path}">${taxText(v)}</span></div>`;
+  const xBtn = (kind, id, label) => `<button class="pe-x${confirmDel === kind + id ? ' pe-x-on' : ''}" type="button" data-del${kind}="${id}" aria-label="${label}">${confirmDel === kind + id ? '消す？' : '×'}</button>`;
   function draw() {
     box.innerHTML = d.blocks.map((b, bi) => {
       const bl = b.title;
-      return `<div class="pe-block"><h4><span>${esc(b.title)}</span>${b.price != null ? `<span class="pe-each">各${priceBox(`${bi}.price`, b.price, bl + '（各）')}<span class="pe-tax" data-tax="${bi}.price">${taxText(b.price)}</span></span>` : ''}</h4>
+      return `<div class="pe-block">
+        <div class="pe-bhead"><input class="pe-title" data-path="${bi}.title" value="${esc(b.title)}" placeholder="種類の名前（例：日本酒）" maxlength="20" aria-label="種類の名前">${xBtn('block', bi, 'この種類を消す')}</div>
+        ${each(`${bi}.price`, b.price, bl + '（各）')}
         ${b.groups.map((g, gi) => {
           const gl = g.label ? bl + '／' + g.label : bl;
-          const hp = itemsHavePrice(b, g);
+          const ph = g.price != null && g.price !== '' ? '各' + g.price : b.price != null && b.price !== '' ? '各' + b.price : '値段';
           return `<div class="pe-group">
-            ${g.label || g.price != null ? `<div class="pe-glabel"><span>${esc(g.label)}</span>${g.price != null ? `<span class="pe-each">各${priceBox(`${bi}.${gi}.price`, g.price, gl + '（各）')}<span class="pe-tax" data-tax="${bi}.${gi}.price">${taxText(g.price)}</span></span>` : ''}</div>` : ''}
-            ${g.items.map((it, ii) => `<div class="pe-row${hp ? '' : ' noprice'}">
-              <input data-path="${bi}.${gi}.${ii}.name" value="${esc(it.name)}" aria-label="品名" maxlength="40">
-              ${hp ? priceBox(`${bi}.${gi}.${ii}.price`, it.price, gl + '／' + it.name) : ''}
-              <button class="pe-x" type="button" data-del="${bi}.${gi}.${ii}" aria-label="この行を消す">×</button></div>`).join('')}
+            <div class="pe-glabel"><input data-path="${bi}.${gi}.label" value="${esc(g.label)}" placeholder="小見出し（なくてもOK）" maxlength="30" aria-label="小見出し">${xBtn('group', bi + '.' + gi, 'この小見出しのまとまりを消す')}</div>
+            ${g.plus ? '<span class="pe-note">追加料金（＋○円）の行</span>' : each(`${bi}.${gi}.price`, g.price, g.label ? gl + '（各）' : `#${bi}.${gi}（各）`)}
+            ${g.items.map((it, ii) => `<div class="pe-row">
+              <input data-path="${bi}.${gi}.${ii}.name" value="${esc(it.name)}" aria-label="品名" placeholder="品名" maxlength="40">
+              ${priceBox(`${bi}.${gi}.${ii}.price`, it.price, gl + '／' + it.name, ph)}
+              <button class="pe-x" type="button" data-del="${bi}.${gi}.${ii}" aria-label="この品を消す">×</button></div>`).join('')}
             <button class="pe-add" type="button" data-add="${bi}.${gi}">＋ 品を追加</button></div>`;
-        }).join('')}</div>`;
+        }).join('')}
+        <button class="pe-add" type="button" data-addgroup="${bi}">＋ 小見出しのまとまりを追加</button></div>`;
     }).join('');
     for (const inp of box.querySelectorAll('input[data-key]')) mark(inp);
   }
   function mark(inp) {
     const k = inp.dataset.key;
-    const before = orig.has(k) ? orig.get(k) : undefined;
-    inp.classList.toggle('pe-changed', String(before ?? '') !== inp.value.trim());
+    inp.classList.toggle('pe-changed', String(orig.has(k) ? orig.get(k) ?? '' : '') !== inp.value.trim());
   }
   function set(path, val) {
     const p = path.split('.'); const f = p.pop();
@@ -296,28 +307,76 @@ function priceForm(pl) {
   box.addEventListener('input', (e) => {
     const inp = e.target.closest('input[data-path]'); if (!inp) return;
     set(inp.dataset.path, inp.value);
+    fitOk = '';
     if (inp.dataset.key) {
       mark(inp);
-      const t = box.querySelector(`[data-tax="${inp.dataset.path}"]`); if (t) t.textContent = taxText(inp.value.trim());
+      const t = box.querySelector(`[data-tax="${inp.dataset.path}"]`); if (t) t.textContent = taxText(inp.value);
     }
   });
   box.addEventListener('click', (e) => {
-    const del = e.target.closest('[data-del]'), add = e.target.closest('[data-add]');
-    if (del) { const [bi, gi, ii] = del.dataset.del.split('.').map(Number); d.blocks[bi].groups[gi].items.splice(ii, 1); draw(); }
-    if (add) {
-      const [bi, gi] = add.dataset.add.split('.').map(Number);
-      const b = d.blocks[bi], g = b.groups[gi];
-      g.items.push(itemsHavePrice(b, g) ? { name: '', price: '' } : { name: '' });
-      draw();
+    const t = e.target.closest('button'); if (!t) return;
+    fitOk = '';
+    if (t.dataset.del) { const [bi, gi, ii] = t.dataset.del.split('.').map(Number); d.blocks[bi].groups[gi].items.splice(ii, 1); draw(); return; }
+    if (t.dataset.delgroup) {
+      if (confirmDel !== 'group' + t.dataset.delgroup) { confirmDel = 'group' + t.dataset.delgroup; draw(); return; }
+      const [bi, gi] = t.dataset.delgroup.split('.').map(Number); d.blocks[bi].groups.splice(gi, 1); confirmDel = ''; draw(); return;
+    }
+    if (t.dataset.delblock) {
+      if (confirmDel !== 'block' + t.dataset.delblock) { confirmDel = 'block' + t.dataset.delblock; draw(); return; }
+      d.blocks.splice(Number(t.dataset.delblock), 1); confirmDel = ''; draw(); return;
+    }
+    if (t.dataset.add) {
+      const [bi, gi] = t.dataset.add.split('.').map(Number);
+      d.blocks[bi].groups[gi].items.push({ name: '', price: '' }); draw();
       const rows = box.querySelectorAll(`[data-path^="${bi}.${gi}."][data-path$=".name"]`); if (rows.length) rows[rows.length - 1].focus();
+      return;
+    }
+    if (t.dataset.addgroup) {
+      const bi = Number(t.dataset.addgroup);
+      d.blocks[bi].groups.push({ label: '', items: [{ name: '', price: '' }] }); draw();
+      const ins = box.querySelectorAll(`[data-path="${bi}.${d.blocks[bi].groups.length - 1}.label"]`); if (ins.length) ins[0].focus();
     }
   });
+  $('#peAddBlock', s).onclick = () => {
+    const key = 'x' + Math.random().toString(36).replace(/[^a-z]/g, '').slice(0, 7);
+    d.blocks.push({ key, title: '', groups: [{ label: '', items: [{ name: '', price: '' }] }] });
+    fitOk = ''; draw();
+    const ins = box.querySelectorAll('.pe-title'); ins[ins.length - 1].focus();
+  };
   draw();
+
+  // 保存する形に整える: 空の品・空のまとまり・空の種類は捨てる
+  function cleaned() {
+    const out = JSON.parse(JSON.stringify(d));
+    out.blocks = out.blocks.map((b) => ({ ...b, groups: b.groups.map((g) => ({ ...g, items: g.items.filter((i) => String(i.name || '').trim()) }))
+      .filter((g) => g.items.length) })).filter((b) => String(b.title || '').trim() || b.groups.length);
+    return out;
+  }
+  // 試しに描いて、1枚に収まるか・どれくらい縮むかを見る
+  function checkFit(data) {
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;left:-30000px;top:0;width:1000px;height:1414px;visibility:hidden';
+    document.body.appendChild(tmp);
+    try { return DrinkMenu.mount(tmp, data); } finally { tmp.remove(); }
+  }
   $('#peCancel', s).onclick = closeSheet;
   $('#peSave', s).onclick = (e) => busy(e.currentTarget, async () => {
     const err = $('#peErr', s); err.hidden = true;
+    const data = cleaned();
+    if (data.blocks.some((b) => !String(b.title || '').trim())) { err.textContent = '種類の名前が空のところがあるよ'; err.hidden = false; return; }
+    const r = checkFit(data);
+    const key = JSON.stringify(data);
+    const fbox = $('#peFit', s);
+    if ((!r.fits || r.scale < 0.94) && fitOk !== key) {
+      fitOk = key;
+      fbox.innerHTML = !r.fits
+        ? '<b>1枚に入りきらないよ</b><span>いちばん小さくしても、はみ出すところがある。品を減らすか、このまま保存してあとで直してね。保存するなら、もう一度「保存する」を押してね。</span>'
+        : `<b>文字が少し小さくなるよ（いまの約${Math.round(r.scale * 100)}%）</b><span>1枚に収まるように、全体を縮めて印刷される。これでいいなら、もう一度「保存する」を押してね。</span>`;
+      fbox.hidden = false; fbox.scrollIntoView({ block: 'nearest' });
+      return;
+    }
     try {
-      await api('pricelist', { action: 'update', id: 'drink', version, data: d, editor });
+      await api('pricelist', { action: 'update', id: 'drink', version, data, editor });
       closeSheet(); toast('メニュー表を更新したよ'); await load();
     } catch (er) {
       if (er.code === 'conflict') {

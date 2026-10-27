@@ -223,3 +223,12 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .dz .thumb .dm{position:absolute;left:0;top:0;transform-origin:top left}
 .dz b{font-size:.9rem}
 .dz small{display:block;font-size:.72rem;color:var(--muted);line-height:1.35}
+
+.pe-bhead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.pe .pe-title{font-weight:700;font-size:17px}
+.pe-glabel input{font-size:14px;padding:5px 8px}
+.pe-glabel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.pe-x{min-width:30px;width:auto;padding:0 6px}
+.pe-x-on{color:#fff;background:var(--accent);border-color:var(--accent)}
+.pe-note{font-size:.75rem;color:var(--muted)}
+.pe-row{grid-template-columns:minmax(0,1fr) 92px 30px}
