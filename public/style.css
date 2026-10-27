@@ -6,6 +6,7 @@
   --yaki:#b8402a; --yaki-bg:#f8e4de;
   --age:#a8700c; --age-bg:#f7ecd2;
   --warn:#8a5a00; --warn-bg:#fff3cf;
+  --ok:#25744a; --ok-bg:#e1f2e7;
   --display:"Dela Gothic One","Hiragino Sans","Noto Sans JP",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
 }
@@ -16,6 +17,7 @@
   --yaki:#ff8f75; --yaki-bg:#3b221d;
   --age:#f0bd55; --age-bg:#372c14;
   --warn:#f0c860; --warn-bg:#3a3014;
+  --ok:#6fd39a; --ok-bg:#163223;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -25,6 +27,7 @@
   --yaki:#ff8f75; --yaki-bg:#3b221d;
   --age:#f0bd55; --age-bg:#372c14;
   --warn:#f0c860; --warn-bg:#3a3014;
+  --ok:#6fd39a; --ok-bg:#163223;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -147,3 +150,16 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);
   padding:10px 16px;border-radius:10px;font-size:.88rem;font-weight:700;max-width:calc(100% - 32px)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
+
+/* ---- 変更履歴（何が変わったか） ---- */
+.diff{display:grid;gap:6px;font-size:.85rem}
+.diff-field{display:grid;gap:2px}
+.diff-field > span{font-size:.75rem;font-weight:700;color:var(--muted)}
+.diff-line{border-radius:6px;padding:2px 8px;overflow-wrap:anywhere}
+.diff-add{background:var(--ok-bg);color:var(--ok)}
+.diff-add::before{content:"＋ ";font-weight:700}
+.diff-del{background:var(--yaki-bg);color:var(--yaki);text-decoration:line-through}
+.diff-del::before{content:"－ ";font-weight:700}
+.feed-title{font-size:.95rem;overflow-wrap:anywhere}
+.feed-title small{color:var(--muted);font-size:.78rem;margin-left:4px}
+.linkbtn{font:inherit;font-size:.8rem;color:var(--chin);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;justify-self:start}

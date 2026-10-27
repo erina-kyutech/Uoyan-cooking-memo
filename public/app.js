@@ -145,8 +145,10 @@ function renderTrash() {
 function renderDock() {
   $('#dock').innerHTML = editing
     ? `<div class="who">編集中：<b>${esc(editor)}</b>（<button type="button" data-act="rename">名前を変える</button>）</div>
-       <button class="btn btn-primary" type="button" data-act="edit-off">✓ 編集を終わる</button>`
-    : `<button class="btn wide" type="button" data-act="edit-on">✏ 編集する（メニューの追加・修正）</button>`;
+       <button class="btn" type="button" data-act="feed">変更履歴</button>
+       <button class="btn btn-primary" type="button" data-act="edit-off">✓ 終わる</button>`
+    : `<button class="btn" type="button" data-act="feed">変更履歴</button>
+       <button class="btn wide" type="button" data-act="edit-on">✏ 編集する</button>`;
 }
 
 // ---------- 下から出る入力画面 ----------
@@ -277,7 +279,86 @@ function confirmDelete(m) {
 
 // ---------- 履歴 ----------
 const ACTION_LABEL = { create: '追加', update: '編集', delete: 'ゴミ箱へ', restore: 'ゴミ箱から戻す', revert: '履歴から戻す' };
+const ACTION_VERB = { create: 'を追加', update: 'を編集', delete: 'をゴミ箱に入れた', restore: 'をゴミ箱から戻した', revert: 'を前の状態に戻した' };
+const FIELD_LABEL = { name: 'メニュー名', category: 'カテゴリ', tags: '時間タグ', steps: '手順', plating: '盛り付け', memo: 'メモ', note_title: '見出し', note_steps: '共通メモ' };
+const FIELDS = { menu: ['name', 'category', 'tags', 'steps', 'plating', 'memo'], category: ['note_title', 'note_steps'] };
 
+// 1つ前の状態(prev)と比べて、何が変わったかを「－ 消した行」「＋ 足した行」で見せる
+function diffHtml(h) {
+  if (h.action === 'delete' || h.action === 'restore') return '';
+  const prev = h.action === 'create' ? {} : h.prev;
+  if (!prev) return '';
+  const del = (x) => `<div class="diff-line diff-del">${esc(x)}</div>`;
+  const add = (x) => `<div class="diff-line diff-add">${esc(x)}</div>`;
+  const out = [];
+  for (const f of FIELDS[h.target]) {
+    const a = prev[f], b = h.snapshot[f];
+    let lines = '';
+    if (Array.isArray(a) || Array.isArray(b)) {
+      const A = a || [], B = b || [];
+      if (JSON.stringify(A) === JSON.stringify(B)) continue;
+      lines = A.filter((x) => !B.includes(x)).map(del).join('') + B.filter((x) => !A.includes(x)).map(add).join('');
+      if (!lines) lines = '<div class="diff-line">順番を入れ替えた</div>';
+    } else {
+      if ((a || '') === (b || '')) continue;
+      lines = (a ? del(a) : '') + (b ? add(b) : '');
+    }
+    out.push(`<div class="diff-field"><span>${FIELD_LABEL[f]}</span>${lines}</div>`);
+  }
+  return out.length ? `<div class="diff">${out.join('')}</div>` : '<div class="diff" style="color:var(--muted)">中身の変更はなし</div>';
+}
+
+// ある時点の中身（全部）
+function snapHtml(kind, sn) {
+  const steps = (kind === 'menu' ? sn.steps : sn.note_steps) || [];
+  return kind === 'menu'
+    ? `<b>${esc(sn.name)}</b>${sn.tags && sn.tags.length ? `<div class="chips">${sn.tags.map((t) => `<span class="chip ${tagClass(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
+       ${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+       ${sn.plating ? `<div>盛り付け：${esc(sn.plating)}</div>` : ''}${sn.memo ? `<div>メモ：${esc(sn.memo)}</div>` : ''}`
+    : `<b>${esc(sn.note_title || '（見出しなし）')}</b>${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : '<div>（共通メモなし）</div>'}`;
+}
+
+// 全部のメニューの最近の変更（誰でも見られる）
+async function showFeed() {
+  const s = openSheet(`<h3>変更履歴</h3>
+    <p style="margin:0;font-size:.85rem;color:var(--muted)">最近の変更100件。「－」が消した行、「＋」が足した行。</p>
+    <div class="hist" id="feed"><p class="loading">読み込み中…</p></div>
+    <div class="sheet-actions"><button class="btn" type="button" id="fdClose">閉じる</button></div>`);
+  $('#fdClose', s).onclick = closeSheet;
+  let list;
+  try { list = (await api('history')).history; }
+  catch (e) { $('#feed', s).innerHTML = `<p class="err">${esc(errText(e))}</p>`; return; }
+  if (!list.length) { $('#feed', s).innerHTML = '<p style="color:var(--muted)">まだ誰も変更していないよ</p>'; return; }
+  $('#feed', s).innerHTML = list.map((h) => {
+    const sn = h.snapshot;
+    const isMenu = h.target === 'menu';
+    const title = isMenu ? `「${esc(sn.name)}」${ACTION_VERB[h.action] || ''}<small>${esc(sn.category)}</small>`
+      : `「${esc(sn.name)}」の共通メモ${ACTION_VERB[h.action] || ''}`;
+    const alive = isMenu ? S.menus.some((m) => m.id === h.target_id) : true;
+    return `<div class="hist-item">
+      <div class="hist-top"><b>${esc(h.editor)}さん</b><span>${fmtTime(h.created_at)}</span></div>
+      <div class="feed-title">${title}</div>
+      ${diffHtml(h)}
+      ${alive ? `<button class="linkbtn" type="button" data-jump="${esc(h.target)}" data-id="${esc(h.target_id)}">${isMenu ? 'このメニューを見る' : 'このカテゴリを見る'}</button>` : ''}
+    </div>`;
+  }).join('');
+  $('#feed', s).addEventListener('click', (e) => {
+    const b = e.target.closest('[data-jump]'); if (!b) return;
+    closeSheet(); jumpTo(b.dataset.jump, b.dataset.id);
+  });
+}
+
+function jumpTo(kind, id) {
+  q.value = '';
+  if (kind === 'menu') {
+    const m = S.menus.find((x) => x.id === id); if (!m) return;
+    cat = m.category; openIds.add(id); render();
+    const el = main.querySelector(`details.card[data-id="${CSS.escape(id)}"]`);
+    if (el) el.scrollIntoView({ block: 'center' });
+  } else { cat = id; render(); window.scrollTo(0, 0); }
+}
+
+// 1つのメニュー（または共通メモ）の履歴。編集モードなら「この状態に戻す」ができる
 async function showHistory(kind, id, title) {
   const s = openSheet(`<h3>「${esc(title)}」の履歴</h3><div class="hist" id="hist"><p class="loading">読み込み中…</p></div>
     <div class="sheet-actions"><button class="btn" type="button" id="hClose">閉じる</button></div>`);
@@ -287,18 +368,13 @@ async function showHistory(kind, id, title) {
   catch (e) { $('#hist', s).innerHTML = `<p class="err">${esc(errText(e))}</p>`; return; }
   if (!list.length) { $('#hist', s).innerHTML = '<p style="color:var(--muted)">まだ履歴がないよ</p>'; return; }
   $('#hist', s).innerHTML = list.map((h, i) => {
-    const sn = h.snapshot;
-    const label = h.editor === '初期データ' ? '最初の状態' : ACTION_LABEL[h.action] || h.action;
-    const steps = kind === 'menu' ? sn.steps : sn.note_steps;
-    const detail = kind === 'menu'
-      ? `<b>${esc(sn.name)}</b>${sn.tags && sn.tags.length ? `<div class="chips">${sn.tags.map((t) => `<span class="chip ${tagClass(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
-         ${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
-         ${sn.plating ? `<div>盛り付け：${esc(sn.plating)}</div>` : ''}${sn.memo ? `<div>メモ：${esc(sn.memo)}</div>` : ''}`
-      : `<b>${esc(sn.note_title || '（見出しなし）')}</b>${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : '<div>（共通メモなし）</div>'}`;
+    const first = h.editor === '初期データ';
+    const label = first ? '最初の状態' : ACTION_LABEL[h.action] || h.action;
     return `<div class="hist-item">
-      <div class="hist-top"><b>${esc(h.editor === '初期データ' ? '' : h.editor + 'さん：')}${esc(label)}${i === 0 ? '<span class="badge">いまの状態</span>' : ''}</b><span>${fmtTime(h.created_at)}</span></div>
-      <details><summary>この時点の中身を見る</summary><div class="snap">${detail}</div></details>
-      ${i === 0 ? '' : `<div><button class="btn btn-small" type="button" data-revert="${h.id}">この状態に戻す</button></div>`}
+      <div class="hist-top"><b>${esc(first ? '' : h.editor + 'さん：')}${esc(label)}${i === 0 ? '<span class="badge">いまの状態</span>' : ''}</b><span>${fmtTime(h.created_at)}</span></div>
+      ${first ? '' : diffHtml(h)}
+      <details><summary>この時点の中身を全部見る</summary><div class="snap">${snapHtml(kind, h.snapshot)}</div></details>
+      ${i === 0 || !editing ? '' : `<div><button class="btn btn-small" type="button" data-revert="${h.id}">この状態に戻す</button></div>`}
     </div>`;
   }).join('');
   $('#hist', s).addEventListener('click', (e) => {
@@ -353,6 +429,7 @@ document.addEventListener('click', (e) => {
   if (act === 'edit-on') { if (editor) { editing = true; render(); } else askName(() => { editing = true; render(); toast('編集モードにしたよ'); }); return; }
   if (act === 'edit-off') { editing = false; render(); return; }
   if (act === 'rename') { askName(render); return; }
+  if (act === 'feed') { showFeed(); return; }
   if (act === 'add') { menuForm(null, b.dataset.cat); return; }
   if (act === 'note') { menuOrNote(b.dataset.cat); return; }
   if (act === 'note-history') { showHistory('category', b.dataset.cat, b.dataset.cat + 'の共通メモ'); return; }
