@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>うおやんクッキングメモ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>うおやん<span>クッキングメモ</span></h1>
+    <p class="sub">メニューごとの作り方・時間・盛り付け。タップで開く。</p>
+    <div id="status" class="status" hidden></div>
+  </header>
+  <div class="bar">
+    <input id="q" type="search" placeholder="メニュー名で検索（例：ピザ、手羽）" autocomplete="off">
+    <div class="tabs" id="tabs"></div>
+  </div>
+  <div class="legend" id="legend">
+    <span class="chip c-chin">チン</span><span class="chip c-yaki">焼く</span><span class="chip c-age">揚げる</span>
+  </div>
+  <div id="editHint" class="edit-hint" hidden>
+    編集モード中。カードを開くと「編集」「履歴」「ゴミ箱へ」が出るよ。ゴミ箱に入れても、いちばん下の「ゴミ箱」から戻せる。
+  </div>
+  <main id="main"><p class="loading">読み込み中…</p></main>
+  <section id="trash" class="trash" hidden></section>
+</div>
+
+<div class="dock"><div class="dock-in" id="dock"></div></div>
+<noscript><p style="padding:16px">このページを見るには JavaScript が必要です。</p></noscript>
+<script src="/app.js"></script>
+</body>
+</html>

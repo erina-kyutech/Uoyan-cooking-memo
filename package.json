@@ -1,0 +1,17 @@
+{
+  "name": "uoyan-cooking-memo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "うおやんのメニューの作り方を、みんなで見て・追加・編集できるスマホ向けマニュアル",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node test/api.test.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17"
+  }
+}

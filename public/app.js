@@ -1,0 +1,381 @@
+'use strict';
+// うおやんクッキングメモ（画面）。素の JS。データは /api/state から読み、変更は /api/menu・/api/category に送る。
+
+// ---------- 小さな道具 ----------
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* 保存できなくても動く */ } },
+};
+const fmtTime = (t) => new Date(t).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+// サーバーのエラーコード → 画面に出す言葉
+const ERRORS = {
+  required_name: 'メニュー名を入れてね', required_category: 'カテゴリを選ぶか、新しいカテゴリ名を入れてね', required_editor: '名前を入れてね',
+  too_long_name: 'メニュー名が長すぎるよ（60文字まで）', too_long_category: 'カテゴリ名が長すぎるよ（30文字まで）', too_long_editor: '名前は20文字までにしてね',
+  too_long_steps: '手順の1行が長すぎるよ（300文字まで）', too_many_steps: '手順は30行までにしてね',
+  too_long_tags: '時間タグの1行が長すぎるよ（40文字まで）', too_many_tags: '時間タグは10行までにしてね',
+  too_long_plating: '盛り付けが長すぎるよ（300文字まで）', too_long_memo: 'メモが長すぎるよ（300文字まで）',
+  too_long_note_steps: '共通メモの1行が長すぎるよ', too_many_note_steps: '共通メモは30行までにしてね', too_long_note_title: '見出しが長すぎるよ（40文字まで）',
+  not_found: 'このメニューは見つからなかった。もう一度読み込んでね',
+  network: '通信できなかった。電波を確認して、もう一度押してね',
+};
+const errText = (e) => ERRORS[e.code] || '保存できなかった（' + e.code + '）。もう一度押してね';
+
+async function api(path, body) {
+  let r;
+  try {
+    r = await fetch('/api/' + path, body === undefined ? { cache: 'no-store' } : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+  } catch (_) { const e = new Error('network'); e.code = 'network'; throw e; }
+  let j = {}; try { j = await r.json(); } catch (_) { /* 本文なし */ }
+  if (!r.ok) { const e = new Error(j.error || 'http_' + r.status); e.code = j.error || 'http_' + r.status; e.status = r.status; e.body = j; throw e; }
+  return j;
+}
+
+// ---------- 状態 ----------
+let S = { categories: [], menus: [], trash: [] };
+let cat = 'すべて';
+let editing = false;
+let editor = store.get('uoyan_editor') || '';
+const openIds = new Set(); // 開いているカード（描き直しても開いたままにする）
+
+try { const c = JSON.parse(store.get('uoyan_cache') || 'null'); if (c && Array.isArray(c.menus)) S = c; } catch (_) { /* キャッシュなし */ }
+
+async function load() {
+  try {
+    S = await api('state');
+    store.set('uoyan_cache', JSON.stringify(S));
+    setStatus('');
+  } catch (_) {
+    setStatus(S.menus.length ? '最新の内容を読み込めなかった。前に開いたときの内容を表示しているよ' : '読み込めなかった。電波を確認して、ページを開き直してね');
+  }
+  render();
+}
+function setStatus(t) { const el = $('#status'); el.textContent = t; el.hidden = !t; }
+
+// ---------- 時間タグの色 ----------
+function tagClass(t) {
+  if (/^(チン|レンチン|レンジ)/.test(t)) return 'c-chin';
+  if (/^(焼|鉄板|フライパン|七輪|炙)/.test(t)) return 'c-yaki';
+  if (/^揚/.test(t)) return 'c-age';
+  if (/要確認|注意/.test(t)) return 'c-warn';
+  return 'c-plain';
+}
+
+// ---------- 描画 ----------
+const tabs = $('#tabs'), main = $('#main'), q = $('#q');
+
+function categoriesInOrder() {
+  const names = S.categories.map((c) => c.name);
+  for (const m of S.menus) if (!names.includes(m.category)) names.push(m.category);
+  return names.map((n) => S.categories.find((c) => c.name === n) || { name: n, note_title: '', note_steps: [], version: 0 });
+}
+
+function renderTabs(cats) {
+  const names = ['すべて', ...cats.map((c) => c.name)];
+  if (!names.includes(cat)) cat = 'すべて';
+  tabs.innerHTML = names.map((n) => `<button class="tab" type="button" aria-pressed="${n === cat}" data-tab="${esc(n)}">${esc(n)}</button>`).join('');
+}
+
+function card(m) {
+  const chips = (m.tags || []).map((t) => `<span class="chip ${tagClass(t)}">${esc(t)}</span>`).join('');
+  let body = '';
+  if (m.steps && m.steps.length) body += `<ol>${m.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>`;
+  let dl = '';
+  if (m.plating) dl += `<dt>盛り付け</dt><dd>${esc(m.plating)}</dd>`;
+  if (m.memo) dl += `<dt>メモ</dt><dd>${esc(m.memo)}</dd>`;
+  if (dl) body += `<dl class="row">${dl}</dl>`;
+  if (editing) {
+    body += `<div class="actions">
+      <button class="btn btn-small" type="button" data-act="edit" data-id="${m.id}">編集</button>
+      <button class="btn btn-small" type="button" data-act="history" data-id="${m.id}">履歴</button>
+      <button class="btn btn-small btn-danger" type="button" data-act="delete" data-id="${m.id}">ゴミ箱へ</button>
+    </div>`;
+  }
+  const open = openIds.has(m.id) || q.value.trim() ? ' open' : '';
+  return `<details class="card" data-id="${m.id}"${open}><summary><div class="name">${esc(m.name)}</div>${chips ? `<div class="chips">${chips}</div>` : ''}</summary><div class="body">${body || '<p style="margin:0;color:var(--muted)">手順はまだ書かれていないよ</p>'}</div></details>`;
+}
+
+function noteBox(c) {
+  const has = c.note_title || (c.note_steps && c.note_steps.length);
+  if (!has && !editing) return '';
+  if (!has) return `<div class="add-row" style="margin-bottom:10px"><button class="btn btn-small add-btn" type="button" data-act="note" data-cat="${esc(c.name)}">＋ このカテゴリの共通メモを書く</button></div>`;
+  const btns = editing ? `<span class="add-row">
+      <button class="btn btn-small" type="button" data-act="note" data-cat="${esc(c.name)}">編集</button>
+      <button class="btn btn-small" type="button" data-act="note-history" data-cat="${esc(c.name)}">履歴</button></span>` : '';
+  return `<div class="note"><div class="note-head"><b>${esc(c.note_title || c.name + 'の共通メモ')}</b>${btns}</div>${
+    c.note_steps.length ? `<ol>${c.note_steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}</div>`;
+}
+
+function render() {
+  document.body.classList.toggle('editing', editing);
+  $('#editHint').hidden = !editing;
+  const cats = categoriesInOrder().filter((c) => editing || S.menus.some((m) => m.category === c.name));
+  renderTabs(cats);
+  const term = q.value.trim();
+  let html = '';
+  for (const c of cats) {
+    if (cat !== 'すべて' && c.name !== cat) continue;
+    const items = S.menus.filter((m) => m.category === c.name && (!term || m.name.includes(term) || c.name.includes(term)));
+    if (term && !items.length) continue;
+    const add = editing ? `<button class="btn add-btn" type="button" data-act="add" data-cat="${esc(c.name)}">＋ ${esc(c.name)}にメニューを追加</button>` : '';
+    html += `<section><h2>${esc(c.name)}${items.length ? `<small>${items.length}品</small>` : ''}</h2>${term ? '' : noteBox(c)}<div class="list">${items.map(card).join('')}${add}</div></section>`;
+  }
+  if (editing && !term) html += `<section><button class="btn add-btn" type="button" data-act="add" data-cat="">＋ 新しいカテゴリでメニューを追加</button></section>`;
+  if (!html) html = term ? `<p class="empty">「${esc(term)}」に当てはまるメニューがないよ</p>` : `<p class="loading">${S.menus.length ? '' : '読み込み中…'}</p>`;
+  main.innerHTML = html;
+  renderTrash();
+  renderDock();
+}
+
+function renderTrash() {
+  const el = $('#trash');
+  el.hidden = !editing;
+  if (!editing) { el.innerHTML = ''; return; }
+  el.innerHTML = `<h2>ゴミ箱<small>${S.trash.length}品</small></h2>${S.trash.length ? S.trash.map((m) => `
+    <div class="trash-item"><div><b>${esc(m.name)}</b><small>${esc(m.category)}・${fmtTime(m.deleted_at)} ${esc(m.deleted_by || '')}さんが削除</small></div>
+    <span class="add-row"><button class="btn btn-small" type="button" data-act="history" data-id="${m.id}">履歴</button>
+    <button class="btn btn-small btn-primary" type="button" data-act="restore" data-id="${m.id}">戻す</button></span></div>`).join('')
+    : '<p style="color:var(--muted);font-size:.85rem">ゴミ箱は空だよ</p>'}`;
+}
+
+function renderDock() {
+  $('#dock').innerHTML = editing
+    ? `<div class="who">編集中：<b>${esc(editor)}</b>（<button type="button" data-act="rename">名前を変える</button>）</div>
+       <button class="btn btn-primary" type="button" data-act="edit-off">✓ 編集を終わる</button>`
+    : `<button class="btn wide" type="button" data-act="edit-on">✏ 編集する（メニューの追加・修正）</button>`;
+}
+
+// ---------- 下から出る入力画面 ----------
+let sheetEl = null;
+function openSheet(html) {
+  closeSheet();
+  sheetEl = document.createElement('div');
+  sheetEl.className = 'backdrop';
+  sheetEl.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  sheetEl.addEventListener('click', (e) => { if (e.target === sheetEl) closeSheet(); });
+  document.body.appendChild(sheetEl);
+  document.body.style.overflow = 'hidden';
+  const f = sheetEl.querySelector('input,textarea,select'); if (f && matchMedia('(hover:hover)').matches) f.focus();
+  return sheetEl;
+}
+function closeSheet() {
+  if (sheetEl) { sheetEl.remove(); sheetEl = null; document.body.style.overflow = ''; }
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+let toastTimer;
+function toast(t) {
+  let el = $('.toast');
+  if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = t;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.remove(), 2600);
+}
+
+// 送信中はボタンを押せなくする
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  const label = btn.textContent; btn.disabled = true; btn.textContent = '保存中…';
+  try { await fn(); } finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = label; } }
+}
+
+// ---------- 名前 ----------
+function askName(then) {
+  const s = openSheet(`
+    <h3>あなたの名前</h3>
+    <p style="margin:0;font-size:.88rem;color:var(--muted)">誰が変えたか履歴に残すために使うよ。この端末では次から聞かない。</p>
+    <div class="field"><label for="nm">名前</label><input id="nm" maxlength="20" value="${esc(editor)}" placeholder="例：えりな"></div>
+    <p class="err" id="nmErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="nmCancel">やめる</button><button class="btn btn-primary" type="button" id="nmOk">決定</button></div>`);
+  const ok = () => {
+    const v = $('#nm', s).value.trim();
+    if (!v) { const e = $('#nmErr', s); e.textContent = '名前を入れてね'; e.hidden = false; return; }
+    editor = v; store.set('uoyan_editor', v); closeSheet(); then();
+  };
+  $('#nmOk', s).onclick = ok;
+  $('#nm', s).addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
+  $('#nmCancel', s).onclick = closeSheet;
+}
+
+// ---------- メニューの追加・編集 ----------
+function menuForm(m, presetCat) {
+  const isNew = !m;
+  m = m || { category: presetCat || '', name: '', tags: [], steps: [], plating: '', memo: '' };
+  let version = m.version;
+  const names = categoriesInOrder().map((c) => c.name);
+  const known = names.includes(m.category);
+  const s = openSheet(`
+    <h3>${isNew ? 'メニューを追加' : '「' + esc(m.name) + '」を編集'}</h3>
+    <div class="warnbox" id="conflict" hidden></div>
+    <div class="field"><label for="fCat">カテゴリ</label>
+      <select id="fCat">${names.map((n) => `<option${n === m.category ? ' selected' : ''}>${esc(n)}</option>`).join('')}
+      <option value="__new"${known ? '' : ' selected'}>＋ 新しいカテゴリ</option></select>
+      <input id="fCatNew" maxlength="30" placeholder="新しいカテゴリ名（例：デザート）" value="${known ? '' : esc(m.category)}"${known ? ' hidden' : ''}></div>
+    <div class="field"><label for="fName">メニュー名</label><input id="fName" maxlength="60" value="${esc(m.name)}" placeholder="例：だし巻き卵"></div>
+    <div class="field"><label for="fTags">時間タグ</label>
+      <textarea id="fTags" rows="2" placeholder="チン 1分&#10;揚げる 40秒">${esc((m.tags || []).join('\n'))}</textarea>
+      <span class="hint">1行に1つ。「チン」「焼く」「揚げる」で始めると色がつくよ。なければ空でOK</span></div>
+    <div class="field"><label for="fSteps">手順</label>
+      <textarea id="fSteps" rows="6" placeholder="1行に1つずつ書いてね">${esc((m.steps || []).join('\n'))}</textarea>
+      <span class="hint">1行が1つの手順になる（番号は自動でつく）</span></div>
+    <div class="field"><label for="fPlating">盛り付け</label><textarea id="fPlating" rows="2" placeholder="例：大葉、大根おろし、柑橘">${esc(m.plating)}</textarea></div>
+    <div class="field"><label for="fMemo">メモ</label><textarea id="fMemo" rows="2" placeholder="例：小さいときは6分">${esc(m.memo)}</textarea></div>
+    <p class="err" id="fErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="fCancel">やめる</button><button class="btn btn-accent" type="button" id="fSave">${isNew ? '追加する' : '保存する'}</button></div>`);
+  const sel = $('#fCat', s), catNew = $('#fCatNew', s);
+  sel.onchange = () => { catNew.hidden = sel.value !== '__new'; if (!catNew.hidden) catNew.focus(); };
+  $('#fCancel', s).onclick = closeSheet;
+  $('#fSave', s).onclick = (e) => busy(e.currentTarget, async () => {
+    const menu = {
+      category: sel.value === '__new' ? catNew.value : sel.value,
+      name: $('#fName', s).value, tags: $('#fTags', s).value, steps: $('#fSteps', s).value,
+      plating: $('#fPlating', s).value, memo: $('#fMemo', s).value,
+    };
+    const err = $('#fErr', s); err.hidden = true;
+    try {
+      const r = isNew
+        ? await api('menu', { action: 'create', editor, menu })
+        : await api('menu', { action: 'update', editor, id: m.id, version, menu });
+      openIds.add(r.menu.id);
+      closeSheet();
+      toast(isNew ? '「' + r.menu.name + '」を追加したよ' : '保存したよ');
+      cat = cat === 'すべて' ? cat : r.menu.category;
+      await load();
+    } catch (e) {
+      if (e.code === 'conflict') {
+        // 誰かが先に保存した。自分の入力は残したまま、相手の内容を見せる。もう一度押すと自分の内容で保存する
+        const cur = e.body.menu; version = cur.version;
+        const box = $('#conflict', s);
+        box.innerHTML = `<b>${esc(cur.updated_by)}さんが先に変更したよ（${fmtTime(cur.updated_at)}）</b>
+          <span>いまの内容：</span><ol>${cur.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+          <span>確認して、自分の内容で上書きしていいなら、もう一度「保存する」を押してね。</span>`;
+        box.hidden = false; box.scrollIntoView({ block: 'nearest' });
+        load();
+      } else if (e.code === 'deleted') {
+        err.textContent = 'このメニューは他の人がゴミ箱に入れたよ。ゴミ箱から戻してから編集してね'; err.hidden = false; load();
+      } else { err.textContent = errText(e); err.hidden = false; }
+    }
+  });
+}
+
+// ---------- ゴミ箱 ----------
+function confirmDelete(m) {
+  const s = openSheet(`
+    <h3>「${esc(m.name)}」をゴミ箱に入れる？</h3>
+    <p style="margin:0;font-size:.9rem">ゴミ箱に入れても、いちばん下の「ゴミ箱」からいつでも戻せるよ。</p>
+    <p class="err" id="dErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="dNo">やめる</button><button class="btn btn-danger" type="button" id="dYes">ゴミ箱に入れる</button></div>`);
+  $('#dNo', s).onclick = closeSheet;
+  $('#dYes', s).onclick = (e) => busy(e.currentTarget, async () => {
+    try { await api('menu', { action: 'delete', editor, id: m.id }); closeSheet(); toast('ゴミ箱に入れたよ'); await load(); }
+    catch (er) { const x = $('#dErr', s); x.textContent = errText(er); x.hidden = false; }
+  });
+}
+
+// ---------- 履歴 ----------
+const ACTION_LABEL = { create: '追加', update: '編集', delete: 'ゴミ箱へ', restore: 'ゴミ箱から戻す', revert: '履歴から戻す' };
+
+async function showHistory(kind, id, title) {
+  const s = openSheet(`<h3>「${esc(title)}」の履歴</h3><div class="hist" id="hist"><p class="loading">読み込み中…</p></div>
+    <div class="sheet-actions"><button class="btn" type="button" id="hClose">閉じる</button></div>`);
+  $('#hClose', s).onclick = closeSheet;
+  let list;
+  try { list = (await api('history?target=' + kind + '&id=' + encodeURIComponent(id))).history; }
+  catch (e) { $('#hist', s).innerHTML = `<p class="err">${esc(errText(e))}</p>`; return; }
+  if (!list.length) { $('#hist', s).innerHTML = '<p style="color:var(--muted)">まだ履歴がないよ</p>'; return; }
+  $('#hist', s).innerHTML = list.map((h, i) => {
+    const sn = h.snapshot;
+    const label = h.editor === '初期データ' ? '最初の状態' : ACTION_LABEL[h.action] || h.action;
+    const steps = kind === 'menu' ? sn.steps : sn.note_steps;
+    const detail = kind === 'menu'
+      ? `<b>${esc(sn.name)}</b>${sn.tags && sn.tags.length ? `<div class="chips">${sn.tags.map((t) => `<span class="chip ${tagClass(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
+         ${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+         ${sn.plating ? `<div>盛り付け：${esc(sn.plating)}</div>` : ''}${sn.memo ? `<div>メモ：${esc(sn.memo)}</div>` : ''}`
+      : `<b>${esc(sn.note_title || '（見出しなし）')}</b>${steps.length ? `<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : '<div>（共通メモなし）</div>'}`;
+    return `<div class="hist-item">
+      <div class="hist-top"><b>${esc(h.editor === '初期データ' ? '' : h.editor + 'さん：')}${esc(label)}${i === 0 ? '<span class="badge">いまの状態</span>' : ''}</b><span>${fmtTime(h.created_at)}</span></div>
+      <details><summary>この時点の中身を見る</summary><div class="snap">${detail}</div></details>
+      ${i === 0 ? '' : `<div><button class="btn btn-small" type="button" data-revert="${h.id}">この状態に戻す</button></div>`}
+    </div>`;
+  }).join('');
+  $('#hist', s).addEventListener('click', (e) => {
+    const b = e.target.closest('[data-revert]'); if (!b) return;
+    busy(b, async () => {
+      try {
+        if (kind === 'menu') await api('menu', { action: 'revert', editor, history_id: Number(b.dataset.revert) });
+        else await api('category', { action: 'revert', editor, history_id: Number(b.dataset.revert) });
+        closeSheet(); toast('元に戻したよ'); await load();
+      } catch (er) { toast(errText(er)); }
+    });
+  });
+}
+
+// ---------- カテゴリの共通メモ ----------
+function noteForm(c) {
+  let version = c.version;
+  const s = openSheet(`
+    <h3>「${esc(c.name)}」の共通メモ</h3>
+    <div class="warnbox" id="nConflict" hidden></div>
+    <div class="field"><label for="nTitle">見出し</label><input id="nTitle" maxlength="40" value="${esc(c.note_title)}" placeholder="例：${esc(c.name)}共通"></div>
+    <div class="field"><label for="nSteps">内容</label><textarea id="nSteps" rows="6" placeholder="1行に1つずつ">${esc((c.note_steps || []).join('\n'))}</textarea>
+      <span class="hint">このカテゴリのいちばん上に出るよ。全部消すと共通メモは表示されなくなる</span></div>
+    <p class="err" id="nErr" hidden></p>
+    <div class="sheet-actions"><button class="btn" type="button" id="nCancel">やめる</button><button class="btn btn-accent" type="button" id="nSave">保存する</button></div>`);
+  $('#nCancel', s).onclick = closeSheet;
+  $('#nSave', s).onclick = (e) => busy(e.currentTarget, async () => {
+    const err = $('#nErr', s); err.hidden = true;
+    try {
+      await api('category', { action: 'update', editor, name: c.name, version, note_title: $('#nTitle', s).value, note_steps: $('#nSteps', s).value });
+      closeSheet(); toast('保存したよ'); await load();
+    } catch (er) {
+      if (er.code === 'conflict') {
+        const cur = er.body.category; version = cur.version;
+        const box = $('#nConflict', s);
+        box.innerHTML = `<b>他の人が先に変更したよ</b><span>いまの内容：</span><ol>${cur.note_steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol><span>自分の内容で上書きしていいなら、もう一度「保存する」を押してね。</span>`;
+        box.hidden = false; load();
+      } else { err.textContent = errText(er); err.hidden = false; }
+    }
+  });
+}
+
+// ---------- 操作の受け付け ----------
+const findMenu = (id) => S.menus.find((m) => m.id === id) || S.trash.find((m) => m.id === id);
+const findCat = (n) => categoriesInOrder().find((c) => c.name === n);
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { cat = t.dataset.tab; render(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'edit-on') { if (editor) { editing = true; render(); } else askName(() => { editing = true; render(); toast('編集モードにしたよ'); }); return; }
+  if (act === 'edit-off') { editing = false; render(); return; }
+  if (act === 'rename') { askName(render); return; }
+  if (act === 'add') { menuForm(null, b.dataset.cat); return; }
+  if (act === 'note') { menuOrNote(b.dataset.cat); return; }
+  if (act === 'note-history') { showHistory('category', b.dataset.cat, b.dataset.cat + 'の共通メモ'); return; }
+  const m = findMenu(b.dataset.id); if (!m) return;
+  if (act === 'edit') menuForm(m);
+  else if (act === 'delete') confirmDelete(m);
+  else if (act === 'history') showHistory('menu', m.id, m.name);
+  else if (act === 'restore') busy(b, async () => {
+    try { await api('menu', { action: 'restore', editor, id: m.id }); openIds.add(m.id); toast('「' + m.name + '」を戻したよ'); await load(); }
+    catch (er) { toast(errText(er)); }
+  });
+});
+function menuOrNote(name) { const c = findCat(name); if (c) noteForm(c); }
+
+// カードの開け閉めを覚えておく
+main.addEventListener('toggle', (e) => {
+  const d = e.target; if (!d.matches || !d.matches('details.card')) return;
+  if (d.open) openIds.add(d.dataset.id); else openIds.delete(d.dataset.id);
+}, true);
+
+q.addEventListener('input', render);
+// 画面に戻ってきたら最新を読み直す（入力画面を開いている間は読み直さない）
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !sheetEl) load(); });
+
+if (S.menus.length) render();
+load();
