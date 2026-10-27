@@ -141,19 +141,28 @@
 /* ---- 1枚に収める（menu-render.js の fit）用の入れ物と、あとから足した種類の段 ---- */
 .dm-in{width:100%;height:100%;position:relative;transform-origin:top left}
 .dm:not(.g) .dm-in{display:flex;flex-direction:column}
-.dm:not(.g) .dm-in > .top{flex:720 0 0;height:auto;min-height:0}
-.dm:not(.g) .dm-in > .mid{flex:340 0 0;height:auto;min-height:0}
-.dm:not(.g) .dm-in > .bot{flex:272 0 0;height:auto;min-height:0}
-.dm:not(.g) .dm-in > .xrow{flex:230 0 0;min-height:0}
+.dm:not(.g) .dm-in > .top{flex:720 1 720px;height:auto;min-height:650px}
+.dm:not(.g) .dm-in > .mid{flex:340 1 340px;height:auto;min-height:300px}
+.dm:not(.g) .dm-in > .bot{flex:272 1 272px;height:auto;min-height:245px}
+.dm:not(.g) .dm-in > .xrow{flex:none}
 .dm:not(.g) .dm-in > .line{flex:none}
-.xrow{display:flex;gap:18px}
-.xblk{flex:1;display:flex;gap:14px;align-items:stretch;min-width:0;position:relative}
+/* 足した種類があるときは、まず各段の余白を少し詰めて（min-height まで）、それでも足りなければ全体を縮める */
+/* 消された種類のところを詰める */
+.dm.no-highball .top-r{grid-template-rows:0 minmax(0,1fr);gap:0}
+.dm.no-beer .top-r{grid-template-rows:minmax(0,1fr) 0;gap:0}
+.dm.no-wine .mid{grid-template-columns:minmax(0,1fr) 80px}
+.dm.no-soft .bot{grid-template-columns:minmax(0,1fr) 112px 80px}
+.dm.no-umeshu .bot{grid-template-columns:150px minmax(0,1fr) 116px 80px}
+.dm.no-soft.no-umeshu .dm-in > .bot,.dm.no-soft.no-umeshu .dm-in > .bot + .line{display:none}
+.xrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:2px 0 4px}
+.xblk{flex:1 1 440px;display:flex;gap:16px;align-items:stretch;min-width:0;position:relative}
 .xblk .lantern{margin:14px 0}
-.xbody{display:flex;flex-direction:column;gap:6px;padding-top:12px;min-width:0}
+.xbody{flex:1;display:flex;flex-direction:column;gap:6px;padding-top:12px;min-width:0}
 .xgrp{display:flex;flex-direction:column;gap:4px}
-.dm .xlist li{font-size:22px;line-height:1.45;display:flex;gap:12px;align-items:baseline;white-space:nowrap}
+.xlist{columns:auto 290px;column-gap:36px}
+.dm .xlist li{font-size:25px;line-height:1.6;display:flex;gap:12px;align-items:baseline;white-space:nowrap;break-inside:avoid}
 .xlist .pr{flex-direction:row;gap:4px;align-items:baseline}
 .xprice{margin-top:auto;padding-bottom:10px}
 .xnote{font-size:14px}
-.xill{margin-left:auto;align-self:flex-end;width:150px;flex:none;padding-bottom:10px}
+.xill{margin-left:auto;align-self:flex-end;width:140px;flex:none;padding-bottom:10px}
 .xill svg{display:block;width:100%;height:auto}

@@ -69,6 +69,10 @@
   function render(d) {
     const sour = blockOf(d, 'sour'), hb = blockOf(d, 'highball'), beer = blockOf(d, 'beer');
     const wineB = blockOf(d, 'wine'), sho = blockOf(d, 'shochu'), soft = blockOf(d, 'soft'), ume = blockOf(d, 'umeshu');
+    // 消された種類は描かず、その場所を詰める（.no-wine などのクラスで CSS が並びを変える）
+    const has = (k) => (d.blocks || []).some((b) => b.key === k);
+    const KNOWN = ['sour', 'highball', 'beer', 'wine', 'shochu', 'soft', 'umeshu'];
+    const missing = KNOWN.filter((k) => !has(k)).map((k) => ' no-' + k).join('');
 
     // サワー
     const sRec = grp(sour, 0), sAll = grp(sour, 1), sBig = grp(sour, 2);
@@ -86,7 +90,7 @@
 
     // ハイボール
     const hbA = grp(hb, 0), hbP = grp(hb, 1);
-    const hbHtml = `<div class="hb">
+    const hbHtml = !has('highball') ? '' : `<div class="hb">
       <div class="hb-cols">${(hbA.items || []).map((it, i) => `<div class="hb-col">
           <div class="vname">${esc(it.name)}</div>
           <div class="hb-ill">${i === 0 ? bottle('#c98a2c', '#f1e4c4', 18, 72) : ''}${glass(HB_COLORS[i % 4], 37, 74)}</div>
@@ -100,7 +104,7 @@
     // ビール
     const bBot = grp(beer, 0), bDraft = grp(beer, 1), bNon = grp(beer, 2);
     const nonItem = (bNon.items || [])[0] || {};
-    const beerHtml = `<div class="beer">
+    const beerHtml = !has('beer') ? '' : `<div class="beer">
       <div class="beer-col"><b class="br-label">【${esc(bBot.label)}】</b>
         <ul class="beer-list">${names(bBot).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
         <div class="beer-ill">${bottle('#6b3d12', '#2b2116', 36, 118)}${bottle('#7a5a2a', '#d9d6cf', 36, 118)}${bottle('#704213', '#e8c98a', 36, 118)}</div>
@@ -121,10 +125,10 @@
     const normal = shoGroups.filter((g) => !/プレミアム/.test(g.label));
     const prem = shoGroups.filter((g) => /プレミアム/.test(g.label));
     const midHtml = `<div class="mid">
-      <div class="wine">${lantern(wineB.title, 200)}
+      ${!has('wine') ? '' : `<div class="wine">${lantern(wineB.title, 200)}
         <div class="wine-text">${names(wG).map((n) => `<div>${esc(n)}</div>`).join('')}${wG.note ? `<div>${esc(wG.note)}</div>` : ''}</div>
         <div class="wine-ill">${wine('#f3e9a8')}${wine('#6d1420')}</div>
-        <div class="wine-price">${price(wineB.price ?? groupPrice(wG, wineB), { each: (wG.items || []).length > 0, size: 'm' })}</div></div>
+        <div class="wine-price">${price(wineB.price ?? groupPrice(wG, wineB), { each: (wG.items || []).length > 0, size: 'm' })}</div></div>`}
       <div class="sho">
         ${normal.map((g, i) => `<div class="sho-col${(g.items || []).length === 1 ? ' sho-one' : ''}"><b class="br-label">【${esc(g.label)}】</b>
           ${(g.items || []).length === 1 ? `<div class="vname big">${esc(g.items[0].name)}</div><div class="sho-ill">${bottle('#f4f1ea', '#f4f1ea', 34, 116)}</div>`
@@ -142,27 +146,31 @@
     // ソフトドリンク・梅酒
     const sG = grp(soft, 0), uG = grp(ume, 0);
     const botHtml = `<div class="bot">
-      <div class="soft-ill">${tumbler('#e7a43a', 70, 80)}${tumbler('#f4f0e6', 64, 74)}${tumbler('#4a2312', 58, 90)}${tumbler('#efc26a', 62, 70)}</div>
+      ${!has('soft') ? '' : `<div class="soft-ill">${tumbler('#e7a43a', 70, 80)}${tumbler('#f4f0e6', 64, 74)}${tumbler('#4a2312', 58, 90)}${tumbler('#efc26a', 62, 70)}</div>
       <ul class="soft-list">${names(sG).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
       <div class="soft-price">${price(soft.price ?? groupPrice(sG, soft), { each: true, size: 'm' })}</div>
-      ${lantern(soft.title, 250)}
-      <div class="ume"><ul class="ume-list">${names(uG).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+      ${lantern(soft.title, 250)}`}
+      ${!has('umeshu') ? '' : `<div class="ume"><ul class="ume-list">${names(uG).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
         <div class="ume-price">${price(ume.price ?? groupPrice(uG, ume), { each: true, size: 'm' })}</div></div>
       <div class="ume-ill">${tumbler('#d9963a', 58, 66)}${tumbler('#6e1d1a', 54, 62)}</div>
-      ${lantern(ume.title, 230)}
+      ${lantern(ume.title, 230)}`}
     </div>`;
 
-    // 7種類以外（あとから足した種類）は、いちばん下に段を足して並べる
-    const KNOWN = ['sour', 'highball', 'beer', 'wine', 'shochu', 'soft', 'umeshu'];
+    // 7種類以外（あとから足した種類）は、いちばん下に段を足して並べる（横に2つまで）
     const extra = (d.blocks || []).filter((b) => !KNOWN.includes(b.key));
+    // 提灯の高さは、名前の文字数と品の数に合わせる（空白を作らない）
+    const xh = (b) => {
+      const n = (b.groups || []).reduce((a, g) => a + (g.items || []).length + (g.label ? 1 : 0), 0);
+      return Math.max(40 + 34 * [...String(b.title || '')].length, Math.min(230, 50 + 34 * Math.ceil(n / 2)), 140);
+    };
     const extraHtml = extra.length ? `<div class="line"></div><div class="xrow">${extra.map((b) => `<div class="xblk">
-        ${lantern(b.title, 200)}
+        ${lantern(b.title, xh(b))}
         <div class="xbody">${(b.groups || []).map((g) => `<div class="xgrp">${g.label ? `<b class="br-label">【${esc(g.label)}】</b>` : ''}
-          <ul class="xlist">${(g.items || []).map((i) => `<li><span>${esc(i.name)}</span>${i.price != null ? price(i.price, { size: 's' }) : ''}</li>`).join('')}</ul>
+          <ul class="xlist">${(g.items || []).map((i) => `<li><span>${esc(i.name)}</span>${i.price != null ? price(i.price, { size: 'm' }) : ''}</li>`).join('')}</ul>
           ${g.price != null ? price(g.price, { each: (g.items || []).length > 1, size: 'm' }) : ''}</div>`).join('')}
           ${b.price != null ? `<div class="xprice">${price(b.price, { each: true, size: 'm' })}</div>` : ''}${b.note ? `<p class="xnote">${esc(b.note)}</p>` : ''}</div>
         <div class="xill">${window.MenuIllust ? window.MenuIllust.scene(b.key) : ''}</div></div>`).join('')}</div>` : '';
-    return `<div class="dm"><div class="dm-in">
+    return `<div class="dm${missing}"><div class="dm-in">
       <div class="top">${sourHtml}<div class="top-r">${hbHtml}${beerHtml}</div></div>
       <div class="line"></div>${midHtml}<div class="line"></div>${botHtml}${extraHtml}
     </div></div>`;
