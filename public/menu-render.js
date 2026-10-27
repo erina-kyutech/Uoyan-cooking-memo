@@ -216,11 +216,13 @@
       return `<div class="grp">${head}${g.note ? `<p class="gn">${esc(g.note)}</p>` : ''}
         <ul>${items.map((i) => `<li><span class="nm">${esc(i.name)}</span>${i.price != null ? `<span class="ld"></span>${yen(i.price, false, 'ip')}` : ''}</li>`).join('')}</ul></div>`;
     }).join('');
-    return `<section class="blk b-${esc(b.key)}">
+    const hasIp = (b.groups || []).some((g) => !g.plus && (g.items || []).some((i) => i.price != null));
+    const sc = window.MenuIllust ? window.MenuIllust.scene(b.key) : '';
+    return `<section class="blk b-${esc(b.key)}${hasIp ? ' has-ip' : ''}">
       <div class="bh"><h2><span class="jp">${esc(b.title)}</span>${EN[b.key] ? `<span class="en">${EN[b.key]}</span>` : ''}</h2>
         ${ICON[b.key] ? `<span class="ic">${ICON[b.key]()}</span>` : ''}
         ${b.price != null ? yen(b.price, true, 'bp') : ''}</div>
-      <div class="bb">${groups}</div>${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}</section>`;
+      <div class="bb">${groups}</div>${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}${sc ? `<span class="sc">${sc}</span>` : ''}</section>`;
   }
 
   function renderGeneric(d, theme) {
@@ -235,7 +237,7 @@
       body = cols.map((c, i) => `<div class="col col-${i + 1}">${c.map(blockHtml).join('')}</div>`).join('');
     }
     return `<div class="dm g t-${theme}">
-      <header class="top-h"><h1><span>${esc(d.title || 'ドリンクメニュー')}</span></h1><p class="sub">${esc(SUB[theme] || '')}</p></header>
+      <header class="top-h">${window.MenuIllust ? window.MenuIllust.deco('left') : ''}<h1><span>${esc(d.title || 'ドリンクメニュー')}</span></h1><p class="sub">${esc(SUB[theme] || '')}</p>${window.MenuIllust ? window.MenuIllust.deco('right') : ''}</header>
       <div class="gg">${body}</div>
       ${d.caution ? `<footer class="cau">${esc(d.caution)}</footer>` : ''}
     </div>`;

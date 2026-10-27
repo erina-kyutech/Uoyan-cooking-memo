@@ -20,8 +20,9 @@
 .dm.g .gh{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 10px;margin-top:4px}
 .dm.g .gl{white-space:nowrap}
 .dm.g .gn{font-size:13px;margin:2px 0}
-.dm.g ul li{display:flex;align-items:baseline;gap:6px}
-.dm.g .nm{min-width:0;flex:0 1 auto}
+.dm.g ul li{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px}
+.dm.g .ip{margin-left:auto}
+.dm.g .nm{white-space:nowrap}
 .dm.g .yen{flex:none}
 .dm.g .ld{flex:1;min-width:12px;border-bottom:2px dotted currentColor;opacity:.3;transform:translateY(-5px)}
 .dm.g .yen{display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;line-height:1}
@@ -214,3 +215,62 @@
 .dm.t-simple .cau{color:#5b6573}
 
 .dm.t-wa .b-soft h2 .jp{font-size:27px;letter-spacing:0}
+
+/* ---------- イラスト（menu-illust.js） ---------- */
+/* 1品ずつの値段が無いブロック（右側が空く）は、右に大きめの絵を置く。値段が並ぶブロックは見出しの小さい絵だけ */
+.dm.g .blk{position:relative}
+.dm.g .sc,.dm.g .deco{display:none}
+.dm.g .blk:not(.has-ip) .sc{display:block;position:absolute;right:var(--sc-r,10px);top:var(--sc-t,70px);width:var(--sc-w,180px);pointer-events:none}
+.dm.g .blk:not(.has-ip) .ic{display:none}
+.dm.g .sc svg{display:block;width:100%;height:auto}
+.dm.g .deco{width:100%;height:auto}
+.dm.g .b-wine{--sc-w:110px;--sc-t:auto}
+.dm.g .b-wine .sc{bottom:2px}
+.dm.g .b-umeshu{--sc-w:170px;--sc-t:auto}
+.dm.g .b-umeshu .sc{bottom:10px}
+.dm.g .top-h .deco{position:absolute;width:150px;top:-14px}
+.dm.g .top-h .deco-l{left:0}
+.dm.g .top-h .deco-r{right:0}
+
+/* 筆文字カード: 左上に飾り。ワイン・焼酎・梅酒のカードの空いたところに絵 */
+.dm.t-brush .top-h .deco-l{display:block;width:120px;left:0;top:-20px}
+.dm.t-brush .b-sour .sc{display:none!important}
+.dm.t-brush .b-sour .ic{display:flex!important}
+.dm.t-brush .b-wine{--sc-w:230px;--sc-t:auto;--sc-r:20px}
+.dm.t-brush .b-wine .sc{bottom:16px}
+.dm.t-brush .b-wine .ic{display:none}
+.dm.t-brush .b-shochu .sc{display:block;position:absolute;left:14px;bottom:56px;width:150px}
+.dm.t-brush .b-soft .sc{display:none!important}
+.dm.t-brush .b-soft .ic{display:flex!important}
+.dm.t-brush .b-umeshu{--sc-w:150px}
+.dm.t-brush .b-umeshu .ic{display:none}
+
+/* 縦書き和柄: 段のいちばん左に絵（流れの中に置く） */
+.dm.t-wa .sc{display:none!important}
+.dm.t-wa .blk{position:static}
+.dm.t-wa .col{position:relative;justify-content:flex-start}
+.dm.t-wa .b-highball .sc,.dm.t-wa .b-umeshu .sc{display:block!important;position:absolute!important;left:0!important;bottom:14px!important;top:auto!important;right:auto!important;width:170px!important}
+.dm.t-wa .top-h .deco{display:block;width:96px;top:auto;bottom:-6px;opacity:.95}
+.dm.t-wa .top-h .deco-l{left:20px}.dm.t-wa .top-h .deco-r{right:20px}
+
+/* 手書きイラスト: 線画風（黒い線＋うすい色） */
+.dm.t-hand .top-h .deco-l{display:block;width:140px;left:-6px;top:-24px}
+.dm.t-hand .scene :not(.i-hl),.dm.t-hand .ic .ill *,.dm.t-hand .deco :not(.i-hl){stroke:#2f241a;stroke-width:1.6;stroke-opacity:.9;stroke-linejoin:round}
+.dm.t-hand .scene .i-hl,.dm.t-hand .deco .i-hl{stroke-opacity:.5}
+.dm.t-hand .scene,.dm.t-hand .deco{opacity:.95}
+
+/* 黒板: チョーク風（白い線＋うすい色） */
+.dm.t-chalk .top-h .deco{display:block;width:130px;top:-20px}
+.dm.t-chalk .top-h .deco-l{left:10px}.dm.t-chalk .top-h .deco-r{right:10px}
+.dm.t-chalk .scene :not(.i-hl),.dm.t-chalk .deco :not(.i-hl){stroke:#f2efe4;stroke-width:2;stroke-opacity:.8;fill-opacity:.4;stroke-linejoin:round;stroke-linecap:round}
+.dm.t-chalk .scene .i-hl,.dm.t-chalk .deco .i-hl{stroke-opacity:.45}
+
+/* シンプル: 枠の中の右に絵。見出しの帯にも小さく */
+.dm.t-simple .top-h .deco-r{display:block;position:static;width:84px;margin:-10px 0 -14px}
+.dm.t-simple .top-h{align-items:center}
+.dm.t-simple .b-wine{--sc-w:96px;--sc-t:50px}
+.dm.t-simple .b-umeshu{--sc-w:140px}
+.dm.t-wa ul li{flex-wrap:nowrap}
+.dm.t-wa .ip{margin-left:0}
+
+.dm.t-hand .b-wine,.dm.t-chalk .b-wine{min-height:150px}
