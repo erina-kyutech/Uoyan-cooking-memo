@@ -21,12 +21,15 @@
   .stage{max-width:1000px;margin:0 auto;overflow:hidden;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
   .stage .dm{transform-origin:top left}
   .msg{max-width:1000px;margin:40px auto;text-align:center;opacity:.8}
-  @page{size:A4 portrait;margin:0}
+  .note{max-width:1000px;margin:0 auto 10px;font-size:.8rem;opacity:.75}
+  .bar button:disabled{opacity:.6}
+  @page{size:A4 portrait;margin:8mm}
   @media print{
     html,body{background:#fff;padding:0}
-    .bar,.msg{display:none!important}
+    .bar,.msg,.note{display:none!important}
     .stage{max-width:none;height:auto!important;border-radius:0;box-shadow:none;overflow:visible}
-    .stage .dm{transform:none!important;zoom:.7937}
+    .stage{width:180mm;margin:0 auto!important}
+    .stage .dm{transform:none!important;zoom:.68}
   }
 </style>
 </head>
@@ -34,12 +37,16 @@
 <div class="bar">
   <a href="/" id="back">← もどる</a>
   <span class="info" id="info"></span>
-  <button type="button" class="primary" id="print">印刷・PDFで保存</button>
+  <button type="button" class="primary" id="pdf">PDFで保存</button>
+  <button type="button" id="png">画像で保存</button>
+  <button type="button" id="print">印刷</button>
 </div>
+<p class="note" id="note">「PDFで保存」「画像で保存」は、A4ぴったり・余白なしの1枚で保存されるよ。スマホでは、保存先やプリンター、LINEを選べる画面が出る。</p>
 <p class="msg" id="msg">読み込み中…</p>
 <div class="stage" id="stage" hidden></div>
 <script src="/menu-illust.js"></script>
 <script src="/menu-render.js"></script>
+<script src="/menu-export.js"></script>
 <script>
 'use strict';
 (async () => {
@@ -67,6 +74,22 @@
   }
   addEventListener('resize', fit);
   document.getElementById('print').onclick = () => window.print();
+  // 余白なしの PDF / 画像
+  const run = async (btn, kind) => {
+    const dm = stage.firstElementChild; if (!dm || btn.disabled) return;
+    const label = btn.textContent; btn.disabled = true; btn.textContent = '作成中…';
+    const note = document.getElementById('note');
+    try {
+      const d = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }).replace(/\//g, '-');
+      const r = await MenuExport.exportMenu(dm, kind, 'ドリンクメニュー_' + d);
+      note.textContent = r === 'downloaded' ? '保存したよ（ダウンロードを確認してね）' : r === 'shared' ? 'できたよ' : note.textContent;
+    } catch (e) {
+      console.error(e);
+      note.textContent = 'うまく作れなかった。もう一度押すか、「印刷」を使ってね';
+    } finally { btn.disabled = false; btn.textContent = label; }
+  };
+  document.getElementById('pdf').onclick = (e) => run(e.currentTarget, 'pdf');
+  document.getElementById('png').onclick = (e) => run(e.currentTarget, 'png');
 })();
 </script>
 </body>

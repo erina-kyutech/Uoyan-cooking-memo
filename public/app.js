@@ -203,7 +203,7 @@ function renderMenuTab() {
     <div class="mt-design"><span>デザイン：<b>${esc(themeName(pl.data.theme))}</b></span><button class="btn btn-small" type="button" data-act="design">デザインを選ぶ</button></div>
     <a class="mt-preview" href="/menu.html" aria-label="ドリンクメニュー表を大きく開く">${DrinkMenu.render(pl.data)}</a>
     <div class="mt-actions">
-      <a class="btn btn-primary" href="/menu.html">大きく開く・印刷・PDF</a>
+      <a class="btn btn-primary" href="/menu.html">開く・PDF・画像で保存</a>
       <button class="btn btn-accent" type="button" data-act="price-edit">値段・品名を変える</button>
       <button class="btn" type="button" data-act="price-history">履歴</button>
     </div>
